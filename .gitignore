@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+backend/.env
+
+# Node
+node_modules/
+frontend/dist/
+
+# Storage runtime artifacts
+backend/storage/uploads/**
+backend/storage/processing/**
+backend/storage/completed/**
+backend/storage/invoices/**
+backend/storage/logs/**
+
+# IDE
+.vscode/
