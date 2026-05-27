@@ -671,12 +671,12 @@ def model_to_dict(obj):
 @router.get("/backup/files")
 def list_backup_files(admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
     """
-    Returns a list of all active files (upload paths and completed paths)
+    Returns a list of all active files (upload paths)
     on the server, with the corresponding client's username and company name,
     so that the local sync client can download them for backup.
     """
     _ = admin
-    jobs = db.query(Job).filter((Job.upload_path != None) | (Job.completed_path != None)).all()
+    jobs = db.query(Job).filter(Job.upload_path != None).all()
     users = {u.id: u for u in db.query(User).all()}
     
     files = []
@@ -695,22 +695,8 @@ def list_backup_files(admin: User = Depends(get_current_admin), db: Session = De
                     "type": "stone",
                     "username": username,
                     "company_name": company_name,
-                    "filename": p.name,
+                    "filename": j.upload_filename if j.upload_filename else p.name,
                     "download_url": f"/admin/jobs/{j.id}/upload"
-                })
-                
-        # Check completed file path
-        if j.completed_path:
-            p = Path(j.completed_path)
-            if p.exists() and p.is_file():
-                files.append({
-                    "job_id": j.id,
-                    "stone_id": j.stone_id,
-                    "type": "done",
-                    "username": username,
-                    "company_name": company_name,
-                    "filename": p.name,
-                    "download_url": f"/admin/jobs/{j.id}/completed"
                 })
                 
     return files

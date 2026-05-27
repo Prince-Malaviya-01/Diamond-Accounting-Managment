@@ -17,7 +17,7 @@ import shutil
 import threading
 import requests
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -26,10 +26,22 @@ app = FastAPI(title="Diamond Local File & Sync Service")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Custom middleware to allow Private Network Access (PNA) from public IP to localhost
+@app.middleware("http")
+async def add_private_network_header(request: Request, call_next):
+    if request.method == "OPTIONS":
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
 
 # Configuration Paths
 CONFIG_FILE = Path(__file__).resolve().parent / "backup_config.json"
