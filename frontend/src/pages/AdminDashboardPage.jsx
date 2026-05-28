@@ -3575,22 +3575,6 @@ export default function AdminDashboardPage() {
                     </button>
                   </div>
                 </div>
-
-                <div className="form-group">
-                  <label>Default Rate Per Carat (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="e.g. 15.50"
-                    value={registerForm.rate_per_carat || ""}
-                    onChange={(e) => setRegisterForm({ ...registerForm, rate_per_carat: e.target.value })}
-                    autoComplete="off"
-                  />
-                  <small style={{ color: "var(--text-secondary)", display: "block", marginTop: "4px", fontSize: "0.78rem" }}>
-                    Leave blank or 0 to dynamically inherit from global pricing configurations.
-                  </small>
-                </div>
               </div>
 
               <div className="modal-footer">
