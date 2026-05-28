@@ -2326,14 +2326,14 @@ tbody tr:last-child td {
 
   /* Footer stack */
   .landing-footer-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 24px !important;
-    text-align: center;
+    text-align: left !important;
   }
   .landing-footer-grid div {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start !important;
   }
 
   /* Auth Card adjustments to fit narrow screens */
