@@ -1079,9 +1079,9 @@ export default function AdminDashboardPage() {
     { key: "billing", label: "Billing & Accounts", icon: <Receipt size={16} /> },
     { key: "pricing", label: "Weight & Price", icon: <DollarSign size={16} /> },
     { key: "accounts_profit", label: "Accounts Profit", icon: <TrendingUp size={16} /> },
-    { key: "logs", label: "System Logs", icon: <Activity size={16} /> },
     { key: "backup_restore", label: "Backup & Restore", icon: <Database size={16} /> },
     { key: "files_backup", label: "Files Backup", icon: <FolderOpen size={16} /> },
+    { key: "logs", label: "System Logs", icon: <Activity size={16} /> },
   ];
 
 
