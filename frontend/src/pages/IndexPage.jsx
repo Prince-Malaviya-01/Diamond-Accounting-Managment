@@ -71,11 +71,11 @@ export default function IndexPage() {
       fontFamily: "'Outfit', sans-serif"
     }}>
       {/* Decorative Satin Glow Blobs */}
-      <div className="glow-blob blob-1" style={{ position: "absolute", top: "-5%", left: "10%", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
-      <div className="glow-blob blob-2" style={{ position: "absolute", bottom: "20%", right: "5%", width: "600px", height: "600px", background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
+      <div className="glow-blob blob-1 blob-float-1" style={{ position: "absolute", top: "-5%", left: "10%", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
+      <div className="glow-blob blob-2 blob-float-2" style={{ position: "absolute", bottom: "20%", right: "5%", width: "600px", height: "600px", background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
 
       {/* ── HEADER ── */}
-      <header className="shell-header responsive-landing-header">
+      <header className="shell-header responsive-landing-header anim-fade-in-down">
         <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => navigate("/")}>
           <div className="panel-icon primary" style={{ width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Diamond size={18} />
@@ -119,7 +119,7 @@ export default function IndexPage() {
 
       {/* ── HERO SECTION ── */}
       <section className="landing-hero-section">
-        <div style={{ 
+        <div className="anim-fade-in-up" style={{ 
           display: "inline-flex", 
           alignItems: "center", 
           gap: "8px", 
@@ -137,7 +137,7 @@ export default function IndexPage() {
           <Sparkles size={14} /> Premium High-Tech Diamond Operations Console
         </div>
 
-        <h1 className="landing-hero-title">
+        <h1 className="landing-hero-title anim-fade-in-up delay-100">
           Diamond Processing &amp;<br />
           <span style={{ 
             background: "linear-gradient(135deg, var(--primary-light), var(--accent))",
@@ -148,11 +148,11 @@ export default function IndexPage() {
           </span>
         </h1>
 
-        <p className="landing-hero-desc">
+        <p className="landing-hero-desc anim-fade-in-up delay-200">
           A state-of-the-art enterprise system built specifically for diamond manufacturers. Monitor files asynchronously, automate client billing, and silently synchronize backup folders straight to local disks.
         </p>
 
-        <div className="landing-hero-ctas">
+        <div className="landing-hero-ctas anim-fade-in-up delay-300">
           <button 
             className="btn btn-primary" 
             style={{ 
@@ -177,9 +177,9 @@ export default function IndexPage() {
         </div>
 
         {/* ── STATS SECTION ── */}
-        <div className="landing-hero-stats">
+        <div className="landing-hero-stats anim-fade-in-up delay-400">
           {stats.map((s, idx) => (
-            <div key={idx} style={{ textAlign: "center" }}>
+            <div key={idx} className="anim-stat-pulse" style={{ textAlign: "center" }}>
               <h2 style={{ 
                 fontSize: "2.8rem", 
                 fontWeight: 800, 
@@ -219,7 +219,7 @@ export default function IndexPage() {
           {features.map((f, i) => (
             <div 
               key={i} 
-              className="panel" 
+              className="panel anim-hover-lift" 
               style={{ 
                 padding: "32px", 
                 borderRadius: "var(--radius-lg)", 
@@ -268,7 +268,7 @@ export default function IndexPage() {
             position: "relative"
           }}>
             {steps.map((s, i) => (
-              <div key={i} style={{ 
+              <div key={i} className="anim-hover-lift" style={{ 
                 background: "var(--bg-card)",
                 backdropFilter: "var(--glass)",
                 WebkitBackdropFilter: "var(--glass)",
@@ -337,7 +337,7 @@ export default function IndexPage() {
           </div>
 
           {/* Right Architecture Card */}
-          <div style={{
+          <div className="anim-hover-lift" style={{
             background: "var(--bg-card)",
             backdropFilter: "var(--glass)",
             WebkitBackdropFilter: "var(--glass)",

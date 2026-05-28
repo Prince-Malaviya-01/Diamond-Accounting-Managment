@@ -2391,4 +2391,93 @@ tbody tr:last-child td {
     padding: 10px 14px !important;
     font-size: 0.88rem !important;
   }
+}
+
+/* ============================================================
+   LANDING PAGE PREMIUM ANIMATIONS
+   ============================================================ */
+
+/* 1. Staggered Fade In Up Entrance */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.delay-100 { animation-delay: 0.1s !important; }
+.delay-200 { animation-delay: 0.2s !important; }
+.delay-300 { animation-delay: 0.3s !important; }
+.delay-400 { animation-delay: 0.4s !important; }
+.delay-500 { animation-delay: 0.5s !important; }
+
+/* 2. Slide Down Header Entrance */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-fade-in-down {
+  opacity: 0;
+  animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 3. Floating Background Satin Blobs */
+@keyframes floatBlob1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, -60px) scale(1.1); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes floatBlob2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-50px, 40px) scale(0.95); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.blob-float-1 {
+  animation: floatBlob1 20s infinite ease-in-out !important;
+}
+
+.blob-float-2 {
+  animation: floatBlob2 25s infinite ease-in-out !important;
+}
+
+/* 4. Interactive Hover Lift & Glow on Cards */
+.anim-hover-lift {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.anim-hover-lift:hover {
+  transform: translateY(-6px) scale(1.01) !important;
+  box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.18) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
+[data-theme='dark'] .anim-hover-lift:hover {
+  box-shadow: 0 20px 45px -15px rgba(129, 140, 248, 0.28) !important;
+  border-color: rgba(129, 140, 248, 0.45) !important;
+}
+
+/* 5. Shimmer pulse on stats */
+.anim-stat-pulse {
+  transition: transform 0.3s ease !important;
+}
+.anim-stat-pulse:hover {
+  transform: scale(1.05) !important;
 }
