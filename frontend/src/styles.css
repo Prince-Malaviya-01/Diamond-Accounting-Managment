@@ -685,19 +685,20 @@ button {
   box-shadow: 0 4px 12px var(--border-light) !important;
 }
 
-.auth-page .btn-outline {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+.btn-back-home {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
   color: #ffffff !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
 }
 
-.auth-page .btn-outline:hover {
+.btn-back-home:hover {
   background: rgba(255, 255, 255, 0.18) !important;
   border-color: rgba(255, 255, 255, 0.45) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-1px);
 }
 
 .btn-ghost {

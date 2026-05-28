@@ -132,7 +132,7 @@ export default function LoginPage({ mode = "client" }) {
 
       {/* Floating Home Back Button */}
       <button 
-        className="btn btn-outline btn-sm" 
+        className="btn btn-outline btn-sm btn-back-home" 
         onClick={() => navigate("/")}
         style={{
           position: "absolute",
