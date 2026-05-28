@@ -382,11 +382,18 @@ export default function IndexPage() {
         zIndex: 10,
         boxShadow: "0 -8px 32px rgba(31, 38, 135, 0.03)"
       }}>
+        {/* Mobile-only Logo Icon above the columns */}
+        <div className="mobile-footer-logo">
+          <div className="panel-icon primary" style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
+            <Diamond size={16} />
+          </div>
+        </div>
+
         <div className="landing-footer-grid">
           {/* Col 1: Logo & Tagline */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-              <div className="panel-icon primary" style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div className="desktop-footer-logo-icon panel-icon primary" style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Diamond size={16} />
               </div>
               <span style={{ 
