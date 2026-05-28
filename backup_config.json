@@ -1,6 +1,6 @@
 {
     "server_url": "http://13.234.172.221:8000",
+    "backup_root": "D:\\Diamond_Backup_Files",
     "username": "admin",
-    "password": "admin123",
-    "backup_root": "D:\\Diamond_Backup_Files"
+    "password": "admin123"
 }
