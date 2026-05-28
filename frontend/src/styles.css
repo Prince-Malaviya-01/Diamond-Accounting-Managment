@@ -2024,6 +2024,19 @@ tbody tr:last-child td {
   to { transform: scale(1); }
 }
 
+/* ── Theme Transition circular clip path overrides ── */
+html.theme-transition::view-transition-old(root) {
+  animation: none !important;
+  mix-blend-mode: normal !important;
+}
+html.theme-transition::view-transition-new(root) {
+  animation: none !important;
+  mix-blend-mode: normal !important;
+}
+html.theme-transition * {
+  transition: none !important;
+}
+
 /* ── Premium High-Fidelity Loading Overlay & Table Skeleton ── */
 .pricing-table-container {
   min-height: 480px;

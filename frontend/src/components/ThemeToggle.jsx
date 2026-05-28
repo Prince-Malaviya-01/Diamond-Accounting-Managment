@@ -9,15 +9,45 @@ export default function ThemeToggle() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const toggle = () => {
+  const toggle = (e) => {
     // Fallback if browser doesn't support View Transition API
     if (!document.startViewTransition) {
       setTheme(prev => (prev === "light" ? "dark" : "light"));
       return;
     }
 
-    document.startViewTransition(() => {
+    const x = e?.clientX || window.innerWidth / 2;
+    const y = e?.clientY || window.innerHeight / 2;
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    document.documentElement.classList.add("theme-transition");
+
+    const transition = document.startViewTransition(() => {
       setTheme(prev => (prev === "light" ? "dark" : "light"));
+    });
+
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`,
+      ];
+      document.documentElement.animate(
+        {
+          clipPath: clipPath,
+        },
+        {
+          duration: 500,
+          easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+          pseudoElement: "::view-transition-new(root)",
+        }
+      );
+    });
+
+    transition.finished.then(() => {
+      document.documentElement.classList.remove("theme-transition");
     });
   };
 
