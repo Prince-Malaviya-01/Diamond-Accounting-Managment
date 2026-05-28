@@ -20,3 +20,7 @@ backend/storage/logs/**
 
 # IDE
 .vscode/
+
+# User WhatsApp Images & Prompts
+WhatsApp Image 2026-05-28 at *.jpeg
+Prompt/
