@@ -2060,3 +2060,213 @@ tbody tr:last-child td {
     background-position: -200% 0;
   }
 }
+
+/* ============================================================
+   RESPONSIVE DESIGN SYSTEM – ADAPTIVE MEDIA QUERIES
+   ============================================================ */
+
+/* ── 1. LARGE SCREENS (PC & ULTRA-WIDE) ── */
+@media (min-width: 1440px) {
+  .shell-main {
+    max-width: 1400px;
+    padding: 32px 32px 64px;
+  }
+}
+
+/* ── 2. LAPTOPS & SMALL PC DESKTOPS (max-width: 1200px) ── */
+@media (max-width: 1200px) {
+  .shell-header {
+    margin: 12px 16px 0 16px;
+    padding: 12px 20px;
+  }
+  .shell-main {
+    padding: 20px 16px 40px;
+  }
+}
+
+/* ── 3. TABLETS & LARGE MOBILE PHONES (max-width: 768px) ── */
+@media (max-width: 768px) {
+  /* Landing Header Overrides */
+  .responsive-landing-header {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 20px !important;
+    width: 95% !important;
+    margin: 10px auto !important;
+    align-items: center;
+    text-align: center;
+  }
+  .landing-header-buttons {
+    width: 100%;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  /* Admin/Client Shell Header Overrides */
+  .shell-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 18px;
+    margin: 10px 12px 0 12px;
+    border-radius: 16px;
+  }
+  .shell-header-left {
+    justify-content: center;
+    text-align: center;
+  }
+  .shell-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
+  .shell-actions button {
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 12px !important;
+    font-size: 0.82rem !important;
+  }
+
+  /* Grid Reductions */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .panel-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .panel {
+    padding: 20px !important;
+    border-radius: 20px !important;
+  }
+
+  /* Table horizontal responsiveness */
+  .table-container,
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  table {
+    min-width: 600px; /* Forces scroll bar instead of squeezing columns */
+  }
+
+  /* Hero Reductions */
+  .landing-hero-section {
+    padding: 40px 16px 20px 16px !important;
+  }
+  .landing-hero-title {
+    font-size: 2.3rem !important;
+    line-height: 1.2 !important;
+  }
+  .landing-hero-desc {
+    font-size: 0.95rem !important;
+    margin-bottom: 24px !important;
+  }
+  
+  /* Landing footer */
+  .landing-footer-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 30px !important;
+  }
+
+  /* Modals on tablet */
+  .modal {
+    width: 95% !important;
+    margin: 10px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* ── 4. SMALL PORTRAIT MOBILE PHONES (max-width: 480px) ── */
+@media (max-width: 480px) {
+  /* Header layout */
+  .responsive-landing-header {
+    border-radius: 14px !important;
+    padding: 12px 14px !important;
+  }
+  .landing-header-buttons {
+    flex-direction: row;
+    width: 100%;
+  }
+  .landing-header-buttons button {
+    flex: 1;
+    padding: 8px 6px !important;
+    font-size: 0.78rem !important;
+    border-radius: 8px !important;
+  }
+
+  /* Stats cards stack completely */
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .stat-card {
+    padding: 16px 14px !important;
+  }
+  .stat-card .stat-value {
+    font-size: 1.45rem !important;
+  }
+
+  /* CTA actions stack vertically */
+  .landing-hero-ctas {
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    padding: 0 8px !important;
+  }
+  .landing-hero-ctas button {
+    width: 100% !important;
+    padding: 12px 20px !important;
+  }
+
+  /* Title font adjustments */
+  .landing-hero-title {
+    font-size: 1.8rem !important;
+  }
+  .landing-hero-desc {
+    font-size: 0.88rem !important;
+  }
+
+  /* Footer stack */
+  .landing-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+    text-align: center;
+  }
+  .landing-footer-grid div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Auth Card adjustments to fit narrow screens */
+  .auth-card {
+    padding: 28px 20px !important;
+    gap: 16px !important;
+    border-radius: 20px !important;
+  }
+  .auth-card h1 {
+    font-size: 1.6rem !important;
+  }
+  .auth-page .btn-outline[style*="absolute"] {
+    position: static !important;
+    margin-bottom: 16px !important;
+    align-self: flex-start;
+  }
+  .auth-page {
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 40px !important;
+  }
+
+  /* Form Elements scale down */
+  input, select, button {
+    padding: 10px 14px !important;
+    font-size: 0.88rem !important;
+  }
+}

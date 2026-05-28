@@ -75,23 +75,7 @@ export default function IndexPage() {
       <div className="glow-blob blob-2" style={{ position: "absolute", bottom: "20%", right: "5%", width: "600px", height: "600px", background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
 
       {/* ── HEADER ── */}
-      <header className="shell-header" style={{
-        margin: "20px auto",
-        width: "92%",
-        maxWidth: "1200px",
-        background: "var(--bg-card)",
-        backdropFilter: "var(--glass)",
-        WebkitBackdropFilter: "var(--glass)",
-        border: "1px solid var(--border-glass)",
-        borderRadius: "var(--radius)",
-        padding: "16px 28px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        boxShadow: "var(--shadow)",
-        zIndex: 100,
-        position: "relative"
-      }}>
+      <header className="shell-header responsive-landing-header">
         <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => navigate("/")}>
           <div className="panel-icon primary" style={{ width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Diamond size={18} />
@@ -108,7 +92,7 @@ export default function IndexPage() {
           </span>
         </div>
 
-        <div style={{ display: "flex", gap: "16px" }}>
+        <div className="landing-header-buttons">
           <button 
             className="btn btn-outline" 
             style={{ borderRadius: "var(--radius-sm)", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem" }}
@@ -134,14 +118,7 @@ export default function IndexPage() {
       </header>
 
       {/* ── HERO SECTION ── */}
-      <section style={{ 
-        maxWidth: "1200px", 
-        margin: "0 auto", 
-        padding: "80px 20px 40px 20px", 
-        textAlign: "center", 
-        position: "relative",
-        zIndex: 10 
-      }}>
+      <section className="landing-hero-section">
         <div style={{ 
           display: "inline-flex", 
           alignItems: "center", 
@@ -160,13 +137,7 @@ export default function IndexPage() {
           <Sparkles size={14} /> Premium High-Tech Diamond Operations Console
         </div>
 
-        <h1 style={{ 
-          fontSize: "3.8rem", 
-          fontWeight: 800, 
-          lineHeight: 1.15,
-          letterSpacing: "-0.03em",
-          marginBottom: "20px"
-        }}>
+        <h1 className="landing-hero-title">
           Diamond Processing &amp;<br />
           <span style={{ 
             background: "linear-gradient(135deg, var(--primary-light), var(--accent))",
@@ -177,17 +148,11 @@ export default function IndexPage() {
           </span>
         </h1>
 
-        <p style={{ 
-          fontSize: "1.15rem", 
-          color: "var(--text-secondary)", 
-          lineHeight: 1.65, 
-          maxWidth: "680px", 
-          margin: "0 auto 40px auto" 
-        }}>
+        <p className="landing-hero-desc">
           A state-of-the-art enterprise system built specifically for diamond manufacturers. Monitor files asynchronously, automate client billing, and silently synchronize backup folders straight to local disks.
         </p>
 
-        <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginBottom: "60px" }}>
+        <div className="landing-hero-ctas">
           <button 
             className="btn btn-primary" 
             style={{ 
@@ -212,20 +177,7 @@ export default function IndexPage() {
         </div>
 
         {/* ── STATS SECTION ── */}
-        <div style={{
-          background: "var(--bg-card)",
-          backdropFilter: "var(--glass)",
-          WebkitBackdropFilter: "var(--glass)",
-          border: "1px solid var(--border-glass)",
-          borderRadius: "var(--radius-lg)",
-          padding: "40px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "30px",
-          boxShadow: "var(--shadow)",
-          maxWidth: "1000px",
-          margin: "0 auto 40px auto"
-        }}>
+        <div className="landing-hero-stats">
           {stats.map((s, idx) => (
             <div key={idx} style={{ textAlign: "center" }}>
               <h2 style={{ 
@@ -353,12 +305,7 @@ export default function IndexPage() {
         position: "relative",
         zIndex: 10 
       }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: "40px",
-          alignItems: "center"
-        }}>
+        <div className="landing-two-col-grid">
           {/* Left Description */}
           <div>
             <h2 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: "18px" }}>
@@ -435,14 +382,7 @@ export default function IndexPage() {
         zIndex: 10,
         boxShadow: "0 -8px 32px rgba(31, 38, 135, 0.03)"
       }}>
-        <div style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "40px",
-          marginBottom: "40px"
-        }}>
+        <div className="landing-footer-grid">
           {/* Col 1: Logo & Tagline */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
