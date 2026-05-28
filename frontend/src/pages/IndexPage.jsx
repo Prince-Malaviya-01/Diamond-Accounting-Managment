@@ -297,79 +297,7 @@ export default function IndexPage() {
         </div>
       </section>
 
-      {/* ── TECHNOLOGY & SECURITY SECTION ── */}
-      <section style={{ 
-        width: "92%", 
-        maxWidth: "1200px", 
-        margin: "80px auto", 
-        position: "relative",
-        zIndex: 10 
-      }}>
-        <div className="landing-two-col-grid">
-          {/* Left Description */}
-          <div>
-            <h2 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: "18px" }}>
-              High-Tech Architecture Built For Enterprise Operations
-            </h2>
-            <p style={{ fontSize: "0.98rem", color: "var(--text-secondary)", lineHeight: 1.65, marginBottom: "24px" }}>
-              Leveraging the power of robust backends and optimized static runtimes to yield absolute accuracy, zero downtime, and lag-free interaction.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
-                <div className="panel-icon success" style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Database size={16} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 4px 0" }}>Robust PostgreSQL Database</h4>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0 }}>Transactional schema structures protect operations logs, users tables, and pricing configurations.</p>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
-                <div className="panel-icon success" style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Activity size={16} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 4px 0" }}>Hardware-Accelerated Fluid UI</h4>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0 }}>Butter-smooth circular view transitions and stable loaders run natively on the GPU at 60 FPS.</p>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Right Architecture Card */}
-          <div className="anim-hover-lift" style={{
-            background: "var(--bg-card)",
-            backdropFilter: "var(--glass)",
-            WebkitBackdropFilter: "var(--glass)",
-            border: "1px solid var(--border-glass)",
-            borderRadius: "var(--radius-lg)",
-            padding: "40px",
-            boxShadow: "var(--shadow-lg)",
-            position: "relative"
-          }}>
-            <h3 style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: "24px", textAlign: "center" }}>System Specs</h3>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-light)", paddingBottom: "10px" }}>
-                <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: 500 }}>API Framework</span>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--primary-light)" }}>FastAPI (Python)</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-light)", paddingBottom: "10px" }}>
-                <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: 500 }}>Database Manager</span>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--primary-light)" }}>PostgreSQL (Remote)</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-light)", paddingBottom: "10px" }}>
-                <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: 500 }}>Reverse Proxy</span>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--primary-light)" }}>Nginx (Port 80/443)</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-light)", paddingBottom: "10px" }}>
-                <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: 500 }}>SSL Security</span>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--primary-light)" }}>Let's Encrypt (Certbot)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── DETAILED PROFESSIONAL FOOTER ── */}
       <footer style={{
