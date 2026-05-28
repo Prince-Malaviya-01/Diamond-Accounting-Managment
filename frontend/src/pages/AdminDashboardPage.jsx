@@ -104,6 +104,19 @@ export default function AdminDashboardPage() {
   const [editingPrices, setEditingPrices] = useState(null);
   const [loadingPrices, setLoadingPrices] = useState(false);
 
+  // Add Client Modal state
+  const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [registerForm, setRegisterForm] = useState({
+    company_name: "",
+    username: "",
+    password: "",
+    rate_per_carat: 0.0
+  });
+  const [registerError, setRegisterError] = useState("");
+  const [registerSuccess, setRegisterSuccess] = useState("");
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [showRegPwd, setShowRegPwd] = useState(false);
+
   // Custom Report Modal state
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportConfig, setReportConfig] = useState({
@@ -728,6 +741,49 @@ export default function AdminDashboardPage() {
     });
   };
 
+  const handleRegisterClient = async (e) => {
+    e.preventDefault();
+    setRegisterError("");
+    setRegisterSuccess("");
+    
+    const uname = registerForm.username.trim();
+    if (!uname) {
+      setRegisterError("Username is required");
+      return;
+    }
+    if (registerForm.password.length < 4) {
+      setRegisterError("Password must be at least 4 characters long");
+      return;
+    }
+
+    setRegisterLoading(true);
+    try {
+      await api.post("/auth/register", {
+        company_name: registerForm.company_name.trim(),
+        username: uname,
+        password: registerForm.password,
+        rate_per_carat: Number(registerForm.rate_per_carat) || 0.0
+      });
+      setRegisterSuccess("✓ Client account registered successfully!");
+      setRegisterForm({
+        company_name: "",
+        username: "",
+        password: "",
+        rate_per_carat: 0.0
+      });
+      load(); // Reload users & dashboard stats
+      setTimeout(() => {
+        setShowAddClientModal(false);
+        setRegisterSuccess("");
+      }, 1500);
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setRegisterError(typeof detail === "string" ? detail : "Failed to register client");
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "billing") loadBillingData();
   }, [activeTab, loadBillingData]);
@@ -1147,7 +1203,17 @@ export default function AdminDashboardPage() {
     <Shell title="Admin Panel" subtitle="Diamond Processing Management" actions={
       <>
         <span className="refresh-dot" title="Auto-refresh active" />
-        <button onClick={() => navigate("/register")} className="btn-secondary" style={{ marginRight: "10px", display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button onClick={() => {
+          setRegisterForm({
+            company_name: "",
+            username: "",
+            password: "",
+            rate_per_carat: 0.0
+          });
+          setRegisterError("");
+          setRegisterSuccess("");
+          setShowAddClientModal(true);
+        }} className="btn-secondary" style={{ marginRight: "10px", display: 'flex', alignItems: 'center', gap: '8px' }}>
           <UserPlus size={16} /> Add Client
         </button>
         <ThemeToggle />
@@ -3401,6 +3467,144 @@ export default function AdminDashboardPage() {
                 {confirmModal.confirmLabel || "Confirm"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Client Modal ── */}
+      {showAddClientModal && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <div className="panel-title">
+                <UserPlus size={20} className="text-primary" />
+                <h3>Add New Client</h3>
+              </div>
+              <button onClick={() => setShowAddClientModal(false)} className="btn-icon">
+                <XCircle size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleRegisterClient}>
+              <div className="modal-body">
+                <p style={{ marginBottom: 20, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                  Create a secure, dedicated client portal account. The client will be able to log in to view their processing statement, real-time jobs, and invoices.
+                </p>
+
+                {registerError && (
+                  <div style={{
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    background: "var(--failed-bg)",
+                    color: "var(--failed)",
+                    fontSize: "0.85rem",
+                    marginBottom: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
+                  }}>
+                    <AlertCircle size={16} />
+                    <span>{registerError}</span>
+                  </div>
+                )}
+
+                {registerSuccess && (
+                  <div style={{
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    background: "var(--completed-bg)",
+                    color: "var(--completed)",
+                    fontSize: "0.85rem",
+                    marginBottom: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
+                  }}>
+                    <CheckCircle2 size={16} />
+                    <span>{registerSuccess}</span>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label>Company Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Surat Gems & Co."
+                    value={registerForm.company_name}
+                    onChange={(e) => setRegisterForm({ ...registerForm, company_name: e.target.value })}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Username</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. suratgems"
+                    value={registerForm.username}
+                    onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Password</label>
+                  <div style={{ position: "relative", width: "100%" }}>
+                    <input
+                      type={showRegPwd ? "text" : "password"}
+                      required
+                      placeholder="Enter safe password"
+                      value={registerForm.password}
+                      onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                      autoComplete="new-password"
+                      style={{ paddingRight: 42 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPwd(!showRegPwd)}
+                      style={{
+                        position: "absolute", right: 8, top: 11,
+                        background: "none", border: "none", padding: 4,
+                        color: "var(--text-light)", cursor: "pointer",
+                        display: "flex", alignItems: "center"
+                      }}
+                    >
+                      {showRegPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Default Rate Per Carat (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 15.50"
+                    value={registerForm.rate_per_carat || ""}
+                    onChange={(e) => setRegisterForm({ ...registerForm, rate_per_carat: e.target.value })}
+                    autoComplete="off"
+                  />
+                  <small style={{ color: "var(--text-secondary)", display: "block", marginTop: "4px", fontSize: "0.78rem" }}>
+                    Leave blank or 0 to dynamically inherit from global pricing configurations.
+                  </small>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" onClick={() => setShowAddClientModal(false)} className="btn-outline">Cancel</button>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  disabled={registerLoading}
+                >
+                  {registerLoading ? <Loader2 className="spin" size={16} /> : <UserPlus size={16} />}
+                  {registerLoading ? "Saving..." : "Add Client"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

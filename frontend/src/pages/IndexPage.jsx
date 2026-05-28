@@ -471,7 +471,6 @@ export default function IndexPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.85rem" }}>
               <span style={{ color: "var(--text-secondary)", cursor: "pointer", transition: "color 0.2s" }} onClick={() => navigate("/login/client")}>Client Portal Login</span>
               <span style={{ color: "var(--text-secondary)", cursor: "pointer", transition: "color 0.2s" }} onClick={() => navigate("/login/admin")}>Admin Control Center</span>
-              <span style={{ color: "var(--text-secondary)", cursor: "pointer", transition: "color 0.2s" }} onClick={() => navigate("/register")}>User Self-Registration</span>
             </div>
           </div>
 

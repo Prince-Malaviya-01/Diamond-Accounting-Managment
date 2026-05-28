@@ -4,7 +4,6 @@ import IndexPage from "./pages/IndexPage";
 
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
-const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const UserDashboardPage = lazy(() => import("./pages/UserDashboardPage"));
 
 function RequireAuth({ children, adminOnly = false }) {
@@ -40,7 +39,6 @@ export default function App() {
         
         {/* Fallbacks */}
         <Route path="/login" element={<Navigate to="/login/client" replace />} />
-        <Route path="/register" element={<RegisterPage />} />
 
         {/* Protected Portals */}
         <Route
