@@ -19,6 +19,8 @@ export default function LoginPage({ mode = "client" }) {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotOtp, setForgotOtp] = useState("");
   const [forgotPasswords, setForgotPasswords] = useState({ newPwd: "", confirmPwd: "" });
+  const [showForgotPwd, setShowForgotPwd] = useState(false);
+  const [showConfirmForgotPwd, setShowConfirmForgotPwd] = useState(false);
   
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
@@ -239,22 +241,48 @@ export default function LoginPage({ mode = "client" }) {
             <form onSubmit={handleResetPassword}>
               <div style={{ position: "relative", marginBottom: "12px" }}>
                 <input
-                  type="password"
+                  type={showForgotPwd ? "text" : "password"}
                   placeholder="New Password"
                   value={forgotPasswords.newPwd}
                   onChange={(e) => setForgotPasswords({ ...forgotPasswords, newPwd: e.target.value })}
                   required
                   autoFocus
+                  style={{ paddingRight: 42 }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPwd(!showForgotPwd)}
+                  style={{
+                    position: "absolute", right: 8, top: 6,
+                    background: "none", border: "none", padding: 4,
+                    color: "var(--text-light)", cursor: "pointer",
+                    display: "flex", alignItems: "center"
+                  }}
+                >
+                  {showForgotPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
               <div style={{ position: "relative", marginBottom: "18px" }}>
                 <input
-                  type="password"
+                  type={showConfirmForgotPwd ? "text" : "password"}
                   placeholder="Confirm New Password"
                   value={forgotPasswords.confirmPwd}
                   onChange={(e) => setForgotPasswords({ ...forgotPasswords, confirmPwd: e.target.value })}
                   required
+                  style={{ paddingRight: 42 }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmForgotPwd(!showConfirmForgotPwd)}
+                  style={{
+                    position: "absolute", right: 8, top: 6,
+                    background: "none", border: "none", padding: 4,
+                    color: "var(--text-light)", cursor: "pointer",
+                    display: "flex", alignItems: "center"
+                  }}
+                >
+                  {showConfirmForgotPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
               <button type="submit" className="btn-primary" disabled={forgotLoading} style={{ width: "100%", justifyContent: "center", padding: "12px", marginBottom: "12px" }}>
                 {forgotLoading ? "Updating..." : "Update Password"}

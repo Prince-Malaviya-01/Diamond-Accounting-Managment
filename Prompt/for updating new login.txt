@@ -1,0 +1,1 @@
+iss me yesa ho sakta hai ki client login pe click kare to wo and admin login pe click kare to wo uska diffretn page na open ho per jo main page hai usme popup type me aajaye yesa kar sakte hai kya 
