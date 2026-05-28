@@ -672,6 +672,20 @@ button {
 }
 
 .btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text) !important;
+}
+
+.btn-outline:hover {
+  background: var(--primary-bg) !important;
+  border-color: var(--primary-light) !important;
+  color: var(--primary-light) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--border-light) !important;
+}
+
+.auth-page .btn-outline {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: #ffffff !important;
@@ -679,11 +693,10 @@ button {
   -webkit-backdrop-filter: blur(8px);
 }
 
-.btn-outline:hover {
+.auth-page .btn-outline:hover {
   background: rgba(255, 255, 255, 0.18) !important;
   border-color: rgba(255, 255, 255, 0.45) !important;
   color: #ffffff !important;
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15) !important;
 }
 
