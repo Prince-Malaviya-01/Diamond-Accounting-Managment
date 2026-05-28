@@ -1,4 +1,4 @@
-import{c}from"./diamond-DYZRTGGV.js";/**
+import{c}from"./diamond-DYPLatY3.js";/**
  * @license lucide-react v0.577.0 - ISC
  *
  * This source code is licensed under the ISC license.
