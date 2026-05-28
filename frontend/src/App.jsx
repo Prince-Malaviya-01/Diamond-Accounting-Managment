@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import IndexPage from "./pages/IndexPage";
 
-const IndexPage = lazy(() => import("./pages/IndexPage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
