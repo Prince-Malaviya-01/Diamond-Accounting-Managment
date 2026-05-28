@@ -819,20 +819,22 @@ td {
 td button, 
 td .btn,
 td a.btn {
-  max-width: 110px !important;
+  max-width: 135px !important;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 8px !important;
+  display: inline-block !important;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 28px;
+  padding: 0 10px !important;
   font-size: 0.78rem !important;
   height: 28px !important;
+  box-sizing: border-box;
 }
 
 td input.small-input {
-  width: 50px !important;
+  width: 68px !important;
   padding: 4px 6px !important;
   font-size: 0.8rem !important;
   height: 28px !important;
