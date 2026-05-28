@@ -110,6 +110,16 @@ export default function UserDashboardPage() {
   const [accProfitMonth, setAccProfitMonth] = useState("all");
   const [accProfitYear, setAccProfitYear] = useState("all");
 
+  // Custom Confirm Modal state for premium UI confirmations
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: "",
+    message: "",
+    confirmLabel: "",
+    onConfirm: null,
+    isDanger: false
+  });
+
   const showMsg = (text) => {
     setMessage(text);
     clearTimeout(msgTimer.current);
@@ -335,13 +345,21 @@ export default function UserDashboardPage() {
   };
 
   const deleteJob = async (job) => {
-    if (!window.confirm(`Delete stone "${job.stone_id}"?`)) return;
-    try {
-      await api.delete(`/jobs/${job.id}`);
-      showMsg(`Deleted: ${job.stone_id}`);
-      setSelectedIds((p) => p.filter((id) => id !== job.id));
-      loadData();
-    } catch (err) { showMsg(err.response?.data?.detail || "Delete failed"); }
+    setConfirmModal({
+      show: true,
+      title: "Delete Stone Record",
+      message: `Are you sure you want to permanently delete stone "${job.stone_id}" from your record?`,
+      confirmLabel: "Delete Stone",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/jobs/${job.id}`);
+          showMsg(`Deleted: ${job.stone_id}`);
+          setSelectedIds((p) => p.filter((id) => id !== job.id));
+          loadData();
+        } catch (err) { showMsg(err.response?.data?.detail || "Delete failed"); }
+      }
+    });
   };
 
   const toggleSelect = (id) =>
@@ -362,12 +380,20 @@ export default function UserDashboardPage() {
 
   const deleteSelected = async () => {
     if (!selectedIds.length) { showMsg("Select stones first"); return; }
-    if (!window.confirm(`Delete ${selectedIds.length} completed stone(s)?`)) return;
-    let n = 0;
-    for (const id of selectedIds) { try { await api.delete(`/jobs/${id}`); n++; } catch {} }
-    setSelectedIds([]);
-    showMsg(`${n} stone(s) deleted`);
-    loadData();
+    setConfirmModal({
+      show: true,
+      title: "Delete Selected Stones",
+      message: `Are you sure you want to permanently delete the ${selectedIds.length} selected completed stone(s)?`,
+      confirmLabel: "Delete Selected",
+      isDanger: true,
+      onConfirm: async () => {
+        let n = 0;
+        for (const id of selectedIds) { try { await api.delete(`/jobs/${id}`); n++; } catch {} }
+        setSelectedIds([]);
+        showMsg(`${n} stone(s) deleted`);
+        loadData();
+      }
+    });
   };
 
   const toggleSelectActive = (id) =>
@@ -378,12 +404,20 @@ export default function UserDashboardPage() {
 
   const deleteSelectedActive = async () => {
     if (!selectedActiveIds.length) { showMsg("Select active stones first"); return; }
-    if (!window.confirm(`Delete ${selectedActiveIds.length} active stone(s)?`)) return;
-    let n = 0;
-    for (const id of selectedActiveIds) { try { await api.delete(`/jobs/${id}`); n++; } catch {} }
-    setSelectedActiveIds([]);
-    showMsg(`${n} active stone(s) deleted`);
-    loadData();
+    setConfirmModal({
+      show: true,
+      title: "Delete Selected Active Stones",
+      message: `Are you sure you want to permanently delete the ${selectedActiveIds.length} selected active stone(s)?`,
+      confirmLabel: "Delete Selected",
+      isDanger: true,
+      onConfirm: async () => {
+        let n = 0;
+        for (const id of selectedActiveIds) { try { await api.delete(`/jobs/${id}`); n++; } catch {} }
+        setSelectedActiveIds([]);
+        showMsg(`${n} active stone(s) deleted`);
+        loadData();
+      }
+    });
   };
 
   const openReportModal = async (month) => {
@@ -1247,6 +1281,66 @@ export default function UserDashboardPage() {
         </div>
       )}
       {message && <div className="toast">{message}</div>}
+
+      {/* ── Premium Custom Confirmation Modal ── */}
+      {confirmModal.show && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center",
+          justifyContent: "center", zIndex: 2000, backdropFilter: "blur(8px)",
+          animation: "fadeIn 0.2s ease-out"
+        }}>
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes scaleIn {
+              from { opacity: 0; transform: scale(0.95); }
+              to { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          <div className="panel" style={{
+            width: "440px", maxWidth: "90%", padding: "24px",
+            border: "1px solid var(--border-light)", background: "var(--bg-card)",
+            borderRadius: "16px", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.15), 0 10px 10px -5px rgba(0,0,0,0.05)",
+            animation: "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "20px" }}>
+              <div style={{
+                background: confirmModal.isDanger ? "var(--failed-bg)" : "var(--primary-bg)",
+                color: confirmModal.isDanger ? "var(--failed)" : "var(--primary)",
+                padding: "12px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                <AlertCircle size={24} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "1.15rem", fontWeight: 700, color: "var(--text)" }}>
+                  {confirmModal.title || "Confirm Action"}
+                </h3>
+                <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: "1.6", color: "var(--text-secondary)" }}>
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "1px solid var(--border-light)", paddingTop: "16px" }}>
+              <button className="btn-ghost" onClick={() => setConfirmModal({ ...confirmModal, show: false })} style={{ height: "40px", padding: "0 18px", borderRadius: "8px", fontWeight: 600 }}>
+                Cancel
+              </button>
+              <button 
+                className={confirmModal.isDanger ? "btn-danger" : "btn-primary"} 
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal({ ...confirmModal, show: false });
+                }}
+                style={{ height: "40px", padding: "0 20px", borderRadius: "8px", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                {confirmModal.confirmLabel || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }

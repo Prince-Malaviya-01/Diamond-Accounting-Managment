@@ -138,6 +138,16 @@ export default function AdminDashboardPage() {
   const [importMode, setImportMode] = useState("merge"); // replace | merge | sync
   const [hasUndo, setHasUndo] = useState(false);
 
+  // Custom Confirm Modal state for premium UI confirmations
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: "",
+    message: "",
+    confirmLabel: "",
+    onConfirm: null,
+    isDanger: false
+  });
+
   // Local Files Backup tab state
   const [localServiceAvail, setLocalServiceAvail] = useState(false);
   const [localBackupData, setLocalBackupData] = useState(null);
@@ -580,39 +590,48 @@ export default function AdminDashboardPage() {
 
   const handleBulkAction = async (action) => {
     if (selectedJobs.length === 0) return;
-    if (!window.confirm(`Apply "${action}" to ${selectedJobs.length} selected items?`)) return;
-    try {
-      setLoading(true);
-      if (action === "Delete") {
-        for (const id of selectedJobs) await api.delete(`/jobs/${id}`);
-        setSelectedJobs([]);
-        load();
-        showMsg(`Bulk Delete successful`);
-      } else if (action === "Process") {
-        const queueJobs = jobs.filter(j => selectedJobs.includes(j.id) && (j.status === "Uploaded" || j.status === "Queued"));
-        let successCount = 0;
-        let failedCount = 0;
-        let skippedCount = selectedJobs.length - queueJobs.length;
+    
+    setConfirmModal({
+      show: true,
+      title: "Confirm Bulk Action",
+      message: `Are you sure you want to apply "${action}" to ${selectedJobs.length} selected items?`,
+      confirmLabel: action,
+      isDanger: action === "Delete",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          if (action === "Delete") {
+            for (const id of selectedJobs) await api.delete(`/jobs/${id}`);
+            setSelectedJobs([]);
+            load();
+            showMsg(`Bulk Delete successful`);
+          } else if (action === "Process") {
+            const queueJobs = jobs.filter(j => selectedJobs.includes(j.id) && (j.status === "Uploaded" || j.status === "Queued"));
+            let successCount = 0;
+            let failedCount = 0;
+            let skippedCount = selectedJobs.length - queueJobs.length;
 
-        for (const j of queueJobs) {
-          const fd = new FormData(); 
-          fd.append("job_id", j.id);
-          try {
-            await api.post("/admin/process", fd);
-            successCount++;
-          } catch (err) {
-            failedCount++;
+            for (const j of queueJobs) {
+              const fd = new FormData(); 
+              fd.append("job_id", j.id);
+              try {
+                await api.post("/admin/process", fd);
+                successCount++;
+              } catch (err) {
+                failedCount++;
+              }
+            }
+            setSelectedJobs([]);
+            load();
+            showMsg(`Bulk Process: ${successCount} successful, ${skippedCount} skipped, ${failedCount} failed`);
           }
+        } catch (err) { 
+          showMsg("Bulk action failed"); 
+        } finally { 
+          setLoading(false); 
         }
-        setSelectedJobs([]);
-        load();
-        showMsg(`Bulk Process: ${successCount} successful, ${skippedCount} skipped, ${failedCount} failed`);
       }
-    } catch (err) { 
-      showMsg("Bulk action failed"); 
-    } finally { 
-      setLoading(false); 
-    }
+    });
   };
 
   const handleBulkCompleteUpload = async (e) => {
@@ -693,12 +712,20 @@ export default function AdminDashboardPage() {
   };
 
   const handleDeleteUser = async (uid, username) => {
-    if (!window.confirm(`Are you sure you want to delete user ${username} and ALL their data? This cannot be undone.`)) return;
-    try {
-      await api.post(`/admin/delete-user/${uid}`);
-      showMsg(`User ${username} deleted`);
-      load();
-    } catch { showMsg("Deletion failed"); }
+    setConfirmModal({
+      show: true,
+      title: "Delete User Account",
+      message: `Are you sure you want to permanently delete user "${username}" and ALL their associated data, jobs, invoices, and folders? This cannot be undone.`,
+      confirmLabel: "Delete User",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await api.post(`/admin/delete-user/${uid}`);
+          showMsg(`User ${username} deleted`);
+          load();
+        } catch { showMsg("Deletion failed"); }
+      }
+    });
   };
 
   useEffect(() => {
@@ -746,14 +773,22 @@ export default function AdminDashboardPage() {
   };
 
   const handleDeleteJob = async (jobId) => {
-    if (!window.confirm("Are you sure you want to delete this job?")) return;
-    try {
-      await api.delete(`/jobs/${jobId}`);
-      showMsg("Job deleted successfully");
-      load();
-    } catch (err) {
-      showMsg(err.response?.data?.detail || "Failed to delete job");
-    }
+    setConfirmModal({
+      show: true,
+      title: "Delete Stone Job",
+      message: "Are you sure you want to permanently delete this job record and all its files from the system?",
+      confirmLabel: "Delete Job",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/jobs/${jobId}`);
+          showMsg("Job deleted successfully");
+          load();
+        } catch (err) {
+          showMsg(err.response?.data?.detail || "Failed to delete job");
+        }
+      }
+    });
   };
 
   const saveBlob = (data, filename) => {
@@ -923,24 +958,31 @@ export default function AdminDashboardPage() {
   };
 
   const handleUndoImport = async () => {
-    if (!window.confirm("WARNING: Are you sure you want to UNDO your last import? This will revert the database exactly to its state before the last import, deleting any records added since then!")) return;
-    
-    setImportLoading(true);
-    showMsg("Reverting last import...");
-    try {
-      const res = await api.post("/admin/undo-import");
-      showMsg(`✓ ${res.data.message || "Reverted successfully!"}`);
-      setHasUndo(false);
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } catch (err) {
-      const detail = err.response?.data?.detail || "Undo failed.";
-      showMsg(`✗ Error: ${detail}`);
-    } finally {
-      setImportLoading(false);
-    }
+    setConfirmModal({
+      show: true,
+      title: "Undo Database Import",
+      message: "WARNING: Are you sure you want to UNDO your last import? This will revert the database exactly to its state before the last import, deleting any records added since then!",
+      confirmLabel: "Revert Import",
+      isDanger: true,
+      onConfirm: async () => {
+        setImportLoading(true);
+        showMsg("Reverting last import...");
+        try {
+          const res = await api.post("/admin/undo-import");
+          showMsg(`✓ ${res.data.message || "Reverted successfully!"}`);
+          setHasUndo(false);
+          
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } catch (err) {
+          const detail = err.response?.data?.detail || "Undo failed.";
+          showMsg(`✗ Error: ${detail}`);
+        } finally {
+          setImportLoading(false);
+        }
+      }
+    });
   };
 
   const uniqueUsers = useMemo(() => [...new Set(jobs.map(j => j.user))].sort(), [jobs]);
@@ -3276,6 +3318,66 @@ export default function AdminDashboardPage() {
               >
                 {downloadingReport ? <Loader2 className="spin" size={16} /> : <Download size={16} />}
                 Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Premium Custom Confirmation Modal ── */}
+      {confirmModal.show && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center",
+          justifyContent: "center", zIndex: 2000, backdropFilter: "blur(8px)",
+          animation: "fadeIn 0.2s ease-out"
+        }}>
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes scaleIn {
+              from { opacity: 0; transform: scale(0.95); }
+              to { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          <div className="panel" style={{
+            width: "440px", maxWidth: "90%", padding: "24px",
+            border: "1px solid var(--border-light)", background: "var(--bg-card)",
+            borderRadius: "16px", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.15), 0 10px 10px -5px rgba(0,0,0,0.05)",
+            animation: "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "20px" }}>
+              <div style={{
+                background: confirmModal.isDanger ? "var(--failed-bg)" : "var(--primary-bg)",
+                color: confirmModal.isDanger ? "var(--failed)" : "var(--primary)",
+                padding: "12px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                <AlertCircle size={24} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "1.15rem", fontWeight: 700, color: "var(--text)" }}>
+                  {confirmModal.title || "Confirm Action"}
+                </h3>
+                <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: "1.6", color: "var(--text-secondary)" }}>
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "1px solid var(--border-light)", paddingTop: "16px" }}>
+              <button className="btn-ghost" onClick={() => setConfirmModal({ ...confirmModal, show: false })} style={{ height: "40px", padding: "0 18px", borderRadius: "8px", fontWeight: 600 }}>
+                Cancel
+              </button>
+              <button 
+                className={confirmModal.isDanger ? "btn-danger" : "btn-primary"} 
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal({ ...confirmModal, show: false });
+                }}
+                style={{ height: "40px", padding: "0 20px", borderRadius: "8px", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                {confirmModal.confirmLabel || "Confirm"}
               </button>
             </div>
           </div>
