@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
+const IndexPage = lazy(() => import("./pages/IndexPage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
@@ -11,7 +12,8 @@ function RequireAuth({ children, adminOnly = false }) {
   const isAdmin = localStorage.getItem("is_admin") === "true";
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    // If not authenticated, redirect to the client login by default
+    return <Navigate to="/login/client" replace />;
   }
   if (adminOnly && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
@@ -28,9 +30,19 @@ export default function App() {
   return (
     <Suspense fallback={<div style={{ padding: "1rem" }}>Loading...</div>}>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<LoginPage />} />
+        {/* Core Landings */}
+        <Route path="/" element={<IndexPage />} />
+        <Route path="/index" element={<IndexPage />} />
+
+        {/* Separated Secure Logins */}
+        <Route path="/login/client" element={<LoginPage mode="client" />} />
+        <Route path="/login/admin" element={<LoginPage mode="admin" />} />
+        
+        {/* Fallbacks */}
+        <Route path="/login" element={<Navigate to="/login/client" replace />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* Protected Portals */}
         <Route
           path="/dashboard"
           element={
@@ -47,6 +59,9 @@ export default function App() {
             </RequireAuth>
           }
         />
+        
+        {/* Catch-all Redirect */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );

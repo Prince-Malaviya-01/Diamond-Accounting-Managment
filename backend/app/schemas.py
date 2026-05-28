@@ -16,6 +16,22 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    is_admin_login: Optional[bool] = False
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class VerifyOTPRequest(BaseModel):
+    email: str
+    otp: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp: str
+    new_password: str
 
 
 class TokenResponse(BaseModel):
