@@ -50,6 +50,33 @@
           '<p><strong>Reason:</strong> ' + event.reason + '</p>';
         document.body.appendChild(div);
       });
+      
+      var originalConsoleError = console.error;
+      console.error = function() {
+        originalConsoleError.apply(console, arguments);
+        var message = Array.from(arguments).map(function(arg) {
+          if (arg && arg.stack) return arg.stack;
+          if (typeof arg === 'object') return JSON.stringify(arg);
+          return String(arg);
+        }).join(' ');
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.bottom = '10px';
+        div.style.left = '10px';
+        div.style.right = '10px';
+        div.style.background = '#fff1f2';
+        div.style.color = '#be123c';
+        div.style.border = '2px solid #fb7185';
+        div.style.padding = '20px';
+        div.style.zIndex = '9999999';
+        div.style.fontFamily = 'monospace';
+        div.style.borderRadius = '8px';
+        div.style.whiteSpace = 'pre-wrap';
+        div.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
+        div.innerHTML = '<h3>🚨 Caught Console Error:</h3>' + 
+          '<p>' + message + '</p>';
+        document.body.appendChild(div);
+      };
     </script>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <script type="module" crossorigin src="/assets/index-BVOuNduv.js"></script>
