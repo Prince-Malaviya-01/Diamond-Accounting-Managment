@@ -10,7 +10,7 @@ export default function LogoutButton() {
       onClick={() => {
         localStorage.removeItem("token");
         localStorage.removeItem("is_admin");
-        navigate("/login");
+        navigate("/");
       }}
     >
       <LogOut size={16} />
