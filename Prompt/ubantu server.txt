@@ -1,0 +1,23 @@
+normal terminal mese ubantu server per aane ke liye command kya hai
+4:38 PM
+विंडोज के सामान्य टर्मिनल (PowerShell) से उड़कर सीधे AWS Ubuntu सर्वर पर जाने के लिए आपको हमेशा ये दो कमांड्स चलाने होंगे:
+
+🚀 Windows से AWS Ubuntu सर्वर पर जाने के लिए:
+पहले .pem की-पेयर वाले फोल्डर में जाएं:
+
+powershell
+cd C:\Users\admin\Downloads
+SSH कमांड के ज़रिए सर्वर से कनेक्ट करें:
+
+powershell
+ssh -i "diamond-key.pem" ubuntu@13.234.172.221
+🔙 वापस विंडोज पीसी पर आने के लिए:
+अगर आप सर्वर के अंदर काम पूरा कर चुके हैं और वापस विंडोज पीसी के नॉर्मल टर्मिनल पर आना चाहते हैं, तो बस यह टाइप करके Enter दबाएं:
+
+bash
+exit
+(ऐसा करते ही आपका सर्वर से कनेक्शन बंद हो जाएगा और आप वापस अपने विंडोज कंप्यूटर पर आ जाएंगे)।
+
+
+cd C:\Users\admin\Downloads
+ssh -i "diamond-key.pem" ubuntu@13.234.172.221

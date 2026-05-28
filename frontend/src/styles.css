@@ -1993,3 +1993,70 @@ tbody tr:last-child td {
   from { transform: scale(1.02); }
   to { transform: scale(1); }
 }
+
+/* ── Premium High-Fidelity Loading Overlay & Table Skeleton ── */
+.pricing-table-container {
+  min-height: 480px;
+  position: relative;
+  transition: min-height 0.3s ease;
+}
+
+.table-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: var(--radius-sm);
+  animation: fadeIn 0.25s ease-out both;
+}
+
+[data-theme='dark'] .table-loading-overlay {
+  background: rgba(8, 14, 28, 0.48);
+}
+
+.loading-spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.loading-spinner-wrapper span {
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+}
+
+.skeleton-row td {
+  padding: 16px 20px;
+  vertical-align: middle;
+}
+
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, var(--border-light) 25%, var(--border) 50%, var(--border-light) 75%);
+  background-size: 200% 100%;
+  border-radius: 8px;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

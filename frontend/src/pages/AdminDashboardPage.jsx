@@ -2202,21 +2202,37 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="table-container">
-              {loadingPrices ? (
-                <div className="empty-state"><Loader2 size={32} className="spin" /><p>Loading pricing...</p></div>
-              ) : (
-                <table className="pricing-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: "40%" }}>Weight</th>
-                      <th style={{ width: "25%" }}>Price Per Carat</th>
-                      <th style={{ width: "25%" }}>Last Updated</th>
-                      {editingPrices && <th style={{ width: "10%", textAlign: "right" }}>Action</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(editingPrices || weightPrices.filter(r => !r.valid_to)).map((item, idx) => (
+            <div className="table-container pricing-table-container">
+              {loadingPrices && (
+                <div className="table-loading-overlay">
+                  <div className="loading-spinner-wrapper">
+                    <Loader2 size={32} className="spin" style={{ color: "var(--primary)" }} />
+                    <span>Updating Prices...</span>
+                  </div>
+                </div>
+              )}
+              
+              <table className="pricing-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "40%" }}>Weight</th>
+                    <th style={{ width: "25%" }}>Price Per Carat</th>
+                    <th style={{ width: "25%" }}>Last Updated</th>
+                    {editingPrices && <th style={{ width: "10%", textAlign: "right" }}>Action</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingPrices && !(editingPrices || weightPrices.filter(r => !r.valid_to)).length ? (
+                    Array.from({ length: 9 }).map((_, idx) => (
+                      <tr key={`skeleton-${idx}`} className="skeleton-row">
+                        <td><div className="skeleton-line" style={{ width: "65%" }}></div></td>
+                        <td><div className="skeleton-line" style={{ width: "45%" }}></div></td>
+                        <td><div className="skeleton-line" style={{ width: "50%" }}></div></td>
+                        {editingPrices && <td></td>}
+                      </tr>
+                    ))
+                  ) : (
+                    (editingPrices || weightPrices.filter(r => !r.valid_to)).map((item, idx) => (
                       <tr key={idx}>
                         <td>
                           {editingPrices ? (
@@ -2259,15 +2275,20 @@ export default function AdminDashboardPage() {
                           </td>
                         )}
                       </tr>
-                    ))}
-                    {!(editingPrices || weightPrices.filter(r => !r.valid_to)).length && (
-                      <tr><td colSpan={editingPrices ? 4 : 3}>
-                        <div className="empty-state"><DollarSign size={28} /><p>No pricing data defined</p></div>
-                      </td></tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
+                    ))
+                  )}
+                  {!(loadingPrices || editingPrices || weightPrices.filter(r => !r.valid_to).length) && (
+                    <tr>
+                      <td colSpan={editingPrices ? 4 : 3}>
+                        <div className="empty-state">
+                          <DollarSign size={28} />
+                          <p>No pricing data defined</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
 
             {editingPrices && (
