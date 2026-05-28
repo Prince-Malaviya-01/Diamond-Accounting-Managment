@@ -848,11 +848,11 @@ export default function IndexPage() {
               }}>
                 <div>
                   <div style={{ display: "flex", gap: "4px", color: "var(--warning)", marginBottom: "16px" }}>
-                    {[...Array(t.stars)].map((_, i) => (
+                    {[1, 2, 3, 4, 5].map((_, i) => (
                       <Star key={i} size={16} fill="currentColor" />
                     ))}
                   </div>
-                  <p style={{ fontSize: "0.95rem", color: "var(--text-secondary)", lineHeight: 1.6, italic: "true", margin: 0 }}>
+                  <p style={{ fontSize: "0.95rem", color: "var(--text-secondary)", lineHeight: 1.6, fontStyle: "italic", margin: 0 }}>
                     "{t.quote}"
                   </p>
                 </div>
