@@ -841,6 +841,15 @@ button {
   align-items: center;
 }
 
+table td .btn-group {
+  flex-wrap: nowrap !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
 /* Legacy button classes mapped */
 button:not([class]) {
   background: var(--primary);
