@@ -1378,13 +1378,13 @@ export default function AdminDashboardPage() {
 
             {/* Filters */}
             <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-              <div style={{ position: "relative" }}>
+              <div style={{ position: "relative", flex: 1, minWidth: "250px" }}>
                 <Search size={16} style={{ position: "absolute", left: 10, top: 10, color: "var(--text-light)" }} />
                 <input 
                   className="search-input"
                   placeholder="Search stone, user, file..." value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  style={{ paddingLeft: 34, marginBottom: 0 }} />
+                  style={{ paddingLeft: 34, marginBottom: 0, width: "100%" }} />
               </div>
               <CustomSelect
                 options={[
