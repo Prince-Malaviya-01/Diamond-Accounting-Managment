@@ -2925,8 +2925,10 @@ html.theme-transition * {
 @media (max-width: 768px) {
   .shell-header-left {
     width: 100% !important;
+    max-width: none !important;
     display: flex !important;
     justify-content: center !important;
+    align-items: center !important;
     text-align: center !important;
   }
   
