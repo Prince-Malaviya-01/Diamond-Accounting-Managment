@@ -2743,7 +2743,12 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="log-list" style={{ maxHeight: 'unset', overflowY: 'visible' }}>
+            <div className="log-list" style={{ 
+              maxHeight: '580px', 
+              overflowY: 'auto', 
+              paddingRight: '6px',
+              borderRadius: '8px'
+            }}>
               {logs.length > 0 ? logs.map((l, i) => (
                 <div key={i} className="log-item" style={{ padding: '12px 16px', marginBottom: 10, border: '1px solid var(--border-light)' }}>
                   <div className="log-action" style={{ 
