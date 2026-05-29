@@ -291,10 +291,13 @@ body {
 
 .shell-header h1 {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 1.75rem;
+  font-weight: 900;
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--primary-light), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .shell-header p {
@@ -506,6 +509,46 @@ body {
 
 .billing-controls-row .generate-btn-wrapper {
   margin-left: auto;
+}
+
+/* Search input left padding fix */
+.search-input {
+  padding-left: 36px !important;
+}
+
+/* Pricing edit footer actions */
+.pricing-edit-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pricing-edit-actions .action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* Management Controls Grid */
+.management-controls-grid {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.management-controls-grid .control-column {
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.management-controls-grid .control-column.retroactive-pricing {
+  border-left: 1px solid rgba(79, 70, 229, 0.2);
+  padding-left: 24px;
 }
 
 .panel-title .panel-icon {
@@ -2432,6 +2475,49 @@ html.theme-transition * {
     height: 44px;
   }
 
+  /* Pricing edit actions responsive */
+  .pricing-edit-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .pricing-edit-actions .action-buttons {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .pricing-edit-actions button {
+    flex: 1;
+    justify-content: center;
+    height: 40px;
+  }
+
+  /* Management Controls Grid Responsive */
+  .management-controls-grid {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 20px !important;
+  }
+  
+  .management-controls-grid .control-column {
+    flex: 1 1 auto !important;
+  }
+
+  .management-controls-grid .control-column.retroactive-pricing {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid rgba(79, 70, 229, 0.15) !important;
+    padding-top: 16px;
+  }
+
+  /* Disable metric card translation on touch/hover to prevent layout jumps */
+  .stat-card:hover {
+    transform: none !important;
+    box-shadow: var(--shadow-md) !important;
+  }
+
   /* Table horizontal responsiveness */
   .table-container,
   .table-wrap {
@@ -2625,6 +2711,22 @@ html.theme-transition * {
     background: rgba(255, 255, 255, 0.06) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     color: var(--text) !important;
+  }
+
+  /* Stack logs list items vertically on mobile to prevent squishing and side margins gap */
+  .log-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  
+  .log-item .log-action {
+    display: inline-block !important;
+    max-width: max-content;
+  }
+  
+  .log-item .log-details {
+    width: 100% !important;
   }
 }
 

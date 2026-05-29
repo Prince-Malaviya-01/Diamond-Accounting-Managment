@@ -1362,6 +1362,7 @@ export default function AdminDashboardPage() {
               <div style={{ position: "relative" }}>
                 <Search size={16} style={{ position: "absolute", left: 10, top: 10, color: "var(--text-light)" }} />
                 <input 
+                  className="search-input"
                   placeholder="Search stone, user, file..." value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   style={{ paddingLeft: 34, marginBottom: 0 }} />
@@ -1408,9 +1409,9 @@ export default function AdminDashboardPage() {
                 <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>Management Controls</h4>
               </div>
 
-              <div style={{ display: "flex", gap: "20px", alignItems: "flex-end", flexWrap: "wrap" }}>
+              <div className="management-controls-grid">
                 {/* 1. Bulk Weight Update */}
-                <div style={{ flex: "1 1 400px", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="control-column bulk-update">
                   <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     1. Bulk Weight Update
                   </label>
@@ -1495,7 +1496,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* 2. Retroactive Pricing */}
-                <div style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: 8, borderLeft: "1px solid rgba(79, 70, 229, 0.2)", paddingLeft: "20px" }}>
+                <div className="control-column retroactive-pricing">
                   <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     2. Retroactive Pricing
                   </label>
@@ -2359,11 +2360,11 @@ export default function AdminDashboardPage() {
             </div>
 
             {editingPrices && (
-              <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="pricing-edit-actions">
                 <button className="btn-secondary" onClick={handleAddPriceRow}>
                   <Plus size={16} /> Add Row
                 </button>
-                <div style={{ display: "flex", gap: 10 }}>
+                <div className="action-buttons">
                   <button className="btn-ghost" onClick={() => setEditingPrices(null)}>Cancel</button>
                   <button className="btn-primary" onClick={handleSavePrices}>Submit Changes</button>
                 </div>
