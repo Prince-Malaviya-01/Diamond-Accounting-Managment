@@ -1273,12 +1273,12 @@ export default function UserDashboardPage() {
                 <XCircle size={24} />
               </button>
             </div>
-            <div className="modal-body" style={{ padding: 0, overflow: 'hidden', height: '100%' }}>
+            <div className="modal-body" style={{ padding: 0, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column' }}>
               <iframe 
                 src={previewUrl} 
                 width="100%" 
                 height="100%" 
-                style={{ border: 'none' }}
+                style={{ border: 'none', flex: 1 }}
                 title="Invoice Preview"
               />
             </div>
