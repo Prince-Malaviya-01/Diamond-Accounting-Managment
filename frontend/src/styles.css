@@ -1939,6 +1939,16 @@ tbody tr:last-child td {
   overflow-y: auto;
 }
 
+.modal-body.pdf-preview-body {
+  padding: 20px !important;
+  padding-bottom: 20px !important; /* perfectly equal symmetric space at top and bottom */
+  max-height: none !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
 .modal-body iframe {
   background: var(--bg-darker) !important;
 }

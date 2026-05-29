@@ -1273,12 +1273,12 @@ export default function UserDashboardPage() {
                 <XCircle size={24} />
               </button>
             </div>
-            <div className="modal-body" style={{ padding: 0, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-body pdf-preview-body">
               <iframe 
                 src={previewUrl} 
                 width="100%" 
                 height="100%" 
-                style={{ border: 'none', flex: 1 }}
+                style={{ border: 'none', flex: 1, borderRadius: '10px' }}
                 title="Invoice Preview"
               />
             </div>
