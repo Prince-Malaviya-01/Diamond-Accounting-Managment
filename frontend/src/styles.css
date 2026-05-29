@@ -2453,6 +2453,20 @@ html.theme-transition * {
     border-radius: 20px !important;
   }
 
+  .panel-header {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  
+  .panel-title {
+    flex-shrink: 1 !important;
+  }
+  
+  .panel-title h3 {
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
   .pricing-panel-header {
     flex-direction: column;
     align-items: flex-start !important;
