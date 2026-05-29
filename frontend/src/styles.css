@@ -2919,4 +2919,36 @@ html.theme-transition * {
 }
 .anim-stat-pulse:hover {
   transform: scale(1.05) !important;
+}
+
+/* ── Mobile Shell Logo Alignment & Size Enhancements ── */
+@media (max-width: 768px) {
+  .shell-header-left {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+  
+  .shell-header-left > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+  
+  .shell-header h1 {
+    font-size: 2.4rem !important; /* Large, prominent text-logo style */
+    font-weight: 900 !important;
+    letter-spacing: -0.03em !important;
+    text-align: center !important;
+    max-width: none !important;
+    margin: 0 auto !important;
+  }
+
+  .shell-header p {
+    text-align: center !important;
+    margin: 4px auto 0 auto !important;
+  }
 }
