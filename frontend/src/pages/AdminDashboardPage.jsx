@@ -1054,16 +1054,18 @@ export default function AdminDashboardPage() {
 
     // 1. User Filter & Date Restriction
     if (userFilter === "all") {
-      // Show jobs from today and yesterday (starting from 00:00 of yesterday)
-      const now = new Date();
-      const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      cutoff.setHours(0, 0, 0, 0);
-      
-      result = result.filter(j => {
-        if (!j.upload_time) return false;
-        const jobDate = new Date(j.upload_time);
-        return jobDate >= cutoff;
-      });
+      if (!searchTerm) {
+        // Show jobs from today and yesterday (starting from 00:00 of yesterday) when search is empty
+        const now = new Date();
+        const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        cutoff.setHours(0, 0, 0, 0);
+        
+        result = result.filter(j => {
+          if (!j.upload_time) return false;
+          const jobDate = new Date(j.upload_time);
+          return jobDate >= cutoff;
+        });
+      }
     } else {
       // If specific user selected, show all data for that user
       result = result.filter(j => j.user === userFilter);
@@ -1074,14 +1076,26 @@ export default function AdminDashboardPage() {
       result = result.filter(j => j.status === statusFilter);
     }
 
-    // 3. Search Filter
+    // 3. Search Filter (user, stone id, price, status, upload time)
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(j =>
-        j.stone_id?.toLowerCase().includes(term) ||
-        j.user?.toLowerCase().includes(term) ||
-        j.upload_filename?.toLowerCase().includes(term)
-      );
+      result = result.filter(j => {
+        const stoneIdMatch = j.stone_id?.toLowerCase().includes(term);
+        const userMatch = j.user?.toLowerCase().includes(term);
+        const fileMatch = j.upload_filename?.toLowerCase().includes(term);
+        const statusMatch = j.status?.toLowerCase().includes(term);
+        
+        // Price / rate per carat / amount match
+        const rateMatch = j.rate_per_carat !== undefined && String(j.rate_per_carat).toLowerCase().includes(term);
+        const amountMatch = j.amount !== undefined && String(j.amount).toLowerCase().includes(term);
+        const priceMatch = rateMatch || amountMatch;
+        
+        // Upload time match
+        const uploadTimeStr = j.upload_time ? new Date(j.upload_time).toLocaleString('en-GB') : "";
+        const timeMatch = uploadTimeStr.toLowerCase().includes(term);
+
+        return stoneIdMatch || userMatch || fileMatch || statusMatch || priceMatch || timeMatch;
+      });
     }
 
     return result;
