@@ -247,16 +247,17 @@ export default function LoginPage({ mode = "client" }) {
                   onChange={(e) => setForgotPasswords({ ...forgotPasswords, newPwd: e.target.value })}
                   required
                   autoFocus
-                  style={{ paddingRight: 42 }}
+                  style={{ paddingRight: 42, marginBottom: 0 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowForgotPwd(!showForgotPwd)}
                   style={{
-                    position: "absolute", right: 8, top: 6,
+                    position: "absolute", right: 12, top: "50%",
+                    transform: "translateY(-50%)",
                     background: "none", border: "none", padding: 4,
                     color: "var(--text-light)", cursor: "pointer",
-                    display: "flex", alignItems: "center"
+                    display: "flex", alignItems: "center", justifyContent: "center"
                   }}
                 >
                   {showForgotPwd ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -269,16 +270,17 @@ export default function LoginPage({ mode = "client" }) {
                   value={forgotPasswords.confirmPwd}
                   onChange={(e) => setForgotPasswords({ ...forgotPasswords, confirmPwd: e.target.value })}
                   required
-                  style={{ paddingRight: 42 }}
+                  style={{ paddingRight: 42, marginBottom: 0 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmForgotPwd(!showConfirmForgotPwd)}
                   style={{
-                    position: "absolute", right: 8, top: 6,
+                    position: "absolute", right: 12, top: "50%",
+                    transform: "translateY(-50%)",
                     background: "none", border: "none", padding: 4,
                     color: "var(--text-light)", cursor: "pointer",
-                    display: "flex", alignItems: "center"
+                    display: "flex", alignItems: "center", justifyContent: "center"
                   }}
                 >
                   {showConfirmForgotPwd ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -303,7 +305,7 @@ export default function LoginPage({ mode = "client" }) {
           <h1>{isAdminLogin ? "Admin Control" : "Client Operations"}</h1>
           <p style={{ marginBottom: "20px" }}>Sign in to your {isAdminLogin ? "system settings" : "diamond queue"}</p>
 
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", marginBottom: "14px" }}>
             <input
               placeholder="Username"
               value={form.username}
@@ -311,25 +313,28 @@ export default function LoginPage({ mode = "client" }) {
               required
               autoFocus
               autoComplete="off"
+              style={{ marginBottom: 0 }}
             />
           </div>
 
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", marginBottom: "14px" }}>
             <input
               type={showPwd ? "text" : "password"}
               placeholder="Password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
-              style={{ paddingRight: 42 }}
+              style={{ paddingRight: 42, marginBottom: 0 }}
             />
             <button
               type="button"
               onClick={() => setShowPwd(!showPwd)}
               style={{
-                position: "absolute", right: 8, top: 6,
+                position: "absolute", right: 12, top: "50%",
+                transform: "translateY(-50%)",
                 background: "none", border: "none", padding: 4,
-                color: "var(--text-light)", cursor: "pointer"
+                color: "var(--text-light)", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center"
               }}
             >
               {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}

@@ -3513,7 +3513,7 @@ export default function AdminDashboardPage() {
                 <h3>Add New Client</h3>
               </div>
               <button onClick={() => setShowAddClientModal(false)} className="btn-icon">
-                <XCircle size={20} />
+                <XCircle size={24} />
               </button>
             </div>
             
@@ -3591,16 +3591,17 @@ export default function AdminDashboardPage() {
                       value={registerForm.password}
                       onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
                       autoComplete="new-password"
-                      style={{ paddingRight: 42 }}
+                      style={{ paddingRight: 42, marginBottom: 0 }}
                     />
                     <button
                       type="button"
                       onClick={() => setShowRegPwd(!showRegPwd)}
                       style={{
-                        position: "absolute", right: 8, top: 11,
+                        position: "absolute", right: 12, top: "50%",
+                        transform: "translateY(-50%)",
                         background: "none", border: "none", padding: 4,
                         color: "var(--text-light)", cursor: "pointer",
-                        display: "flex", alignItems: "center"
+                        display: "flex", alignItems: "center", justifyContent: "center"
                       }}
                     >
                       {showRegPwd ? <EyeOff size={18} /> : <Eye size={18} />}

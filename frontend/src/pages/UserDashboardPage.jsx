@@ -1133,7 +1133,7 @@ export default function UserDashboardPage() {
                 <h3>Download Report</h3>
               </div>
               <button onClick={() => setShowReportModal(false)} className="btn-icon">
-                <XCircle size={20} />
+                <XCircle size={24} />
               </button>
             </div>
             
@@ -1270,7 +1270,7 @@ export default function UserDashboardPage() {
                 <h3>Invoice Preview</h3>
               </div>
               <button onClick={() => { setShowPreviewModal(false); URL.revokeObjectURL(previewUrl); }} className="btn-icon">
-                <XCircle size={20} />
+                <XCircle size={24} />
               </button>
             </div>
             <div className="modal-body" style={{ padding: 0, overflow: 'hidden', height: '100%' }}>
