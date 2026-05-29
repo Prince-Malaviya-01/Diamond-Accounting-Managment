@@ -1831,23 +1831,25 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
               <div className="filter-row billing-controls-row">
-                <div className="filter-group">
-                  <label><Calendar size={14} /> Month</label>
-                  <CustomSelect
-                    options={MONTHS.slice(1).map((m, i) => ({ label: m, value: i + 1 }))}
-                    value={billingMonth}
-                    onChange={setBillingMonth}
-                    style={{ width: "160px" }}
-                  />
-                </div>
-                <div className="filter-group">
-                  <label><Calendar size={14} /> Year</label>
-                  <CustomSelect
-                    options={yearOptions.map(y => ({ label: String(y), value: y }))}
-                    value={billingYear}
-                    onChange={setBillingYear}
-                    style={{ width: "120px" }}
-                  />
+                <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "340px" }}>
+                  <div className="filter-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label><Calendar size={14} /> Month</label>
+                    <CustomSelect
+                      options={MONTHS.slice(1).map((m, i) => ({ label: m, value: i + 1 }))}
+                      value={billingMonth}
+                      onChange={setBillingMonth}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                  <div className="filter-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label><Calendar size={14} /> Year</label>
+                    <CustomSelect
+                      options={yearOptions.map(y => ({ label: String(y), value: y }))}
+                      value={billingYear}
+                      onChange={setBillingYear}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
                 </div>
                 <div className="generate-btn-wrapper">
                   <button className="btn-primary" onClick={() => handleGenerateInvoices()} disabled={generatingInvoice}>
@@ -2400,33 +2402,35 @@ export default function AdminDashboardPage() {
             {/* Filter Bar */}
             <div className="panel" style={{ marginBottom: "20px" }}>
               <div style={{ display: "flex", gap: 15, alignItems: "center", flexWrap: "wrap" }}>
-                <div className="filter-group" style={{ marginBottom: 0 }}>
-                  <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    <Calendar size={14} /> Month
-                  </label>
-                  <CustomSelect
-                    options={[
-                      { label: "All Months", value: "all" },
-                      ...MONTHS.slice(1).map((m, i) => ({ label: m, value: i + 1 }))
-                    ]}
-                    value={accProfitMonth}
-                    onChange={setAccProfitMonth}
-                    style={{ width: "160px" }}
-                  />
-                </div>
-                <div className="filter-group" style={{ marginBottom: 0 }}>
-                  <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    <Calendar size={14} /> Year
-                  </label>
-                  <CustomSelect
-                    options={[
-                      { label: "All Years", value: "all" },
-                      ...yearOptions.map(y => ({ label: String(y), value: y }))
-                    ]}
-                    value={accProfitYear}
-                    onChange={setAccProfitYear}
-                    style={{ width: "120px" }}
-                  />
+                <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "340px" }}>
+                  <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
+                    <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Calendar size={14} /> Month
+                    </label>
+                    <CustomSelect
+                      options={[
+                        { label: "All Months", value: "all" },
+                        ...MONTHS.slice(1).map((m, i) => ({ label: m, value: i + 1 }))
+                      ]}
+                      value={accProfitMonth}
+                      onChange={setAccProfitMonth}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                  <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
+                    <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Calendar size={14} /> Year
+                    </label>
+                    <CustomSelect
+                      options={[
+                        { label: "All Years", value: "all" },
+                        ...yearOptions.map(y => ({ label: String(y), value: y }))
+                      ]}
+                      value={accProfitYear}
+                      onChange={setAccProfitYear}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
                 </div>
                 <button 
                   className={`btn ${accProfitMonth === "all" && accProfitYear === "all" ? "btn-primary" : "btn-outline"}`}
@@ -2750,7 +2754,7 @@ export default function AdminDashboardPage() {
                 </>
               )}
 
-              <div style={{ display: 'flex', gap: 10, alignSelf: 'flex-end' }}>
+              <div className="log-action-buttons" style={{ display: 'flex', gap: 10, alignSelf: 'flex-end' }}>
                 <button className="btn-primary" onClick={loadLogs} disabled={loadingLogs} style={{ height: 38 }}>
                   {loadingLogs ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} Submit
                 </button>
