@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.config import get_settings
 from app.models.user import User
 from app.schemas import (
     LoginRequest, RegisterRequest, TokenResponse, 
@@ -130,14 +131,12 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     print(f"➜ Generated 6-Digit OTP : {otp}")
     print("="*70 + "\n")
     
-    # 5. Attempt actual SMTP delivery if configured in .env
-    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    try:
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    except ValueError:
-        smtp_port = 587
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    # 5. Attempt actual SMTP delivery if configured in Settings (.env)
+    settings = get_settings()
+    smtp_host = settings.smtp_host
+    smtp_port = settings.smtp_port
+    smtp_user = settings.smtp_user
+    smtp_password = settings.smtp_password
     
     email_sent = False
     if smtp_user and smtp_password:
