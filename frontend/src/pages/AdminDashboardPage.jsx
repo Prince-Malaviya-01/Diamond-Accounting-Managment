@@ -2401,7 +2401,7 @@ export default function AdminDashboardPage() {
           <div className="accounts-profit-tab">
             {/* Filter Bar */}
             <div className="panel" style={{ marginBottom: "20px" }}>
-              <div style={{ display: "flex", gap: 15, alignItems: "center", flexWrap: "wrap" }}>
+              <div className="accounts-profit-filter-row" style={{ display: "flex", gap: 15, alignItems: "center", flexWrap: "wrap" }}>
                 <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "340px" }}>
                   <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
                     <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
@@ -2433,7 +2433,7 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
                 <button 
-                  className={`btn ${accProfitMonth === "all" && accProfitYear === "all" ? "btn-primary" : "btn-outline"}`}
+                  className={`btn profit-show-all-btn ${accProfitMonth === "all" && accProfitYear === "all" ? "btn-primary" : "btn-outline"}`}
                   style={{ alignSelf: "flex-end", height: 38 }}
                   onClick={() => { setAccProfitMonth("all"); setAccProfitYear("all"); }}
                 >

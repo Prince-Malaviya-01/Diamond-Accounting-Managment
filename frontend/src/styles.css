@@ -2504,6 +2504,23 @@ html.theme-transition * {
     height: 44px;
   }
 
+  .accounts-profit-filter-row {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  
+  .accounts-profit-filter-row > div {
+    max-width: 100% !important;
+  }
+  
+  .profit-show-all-btn {
+    align-self: center !important;
+    width: 100% !important;
+    max-width: 240px !important;
+    margin-top: 12px !important;
+    justify-content: center !important;
+  }
+
   /* Pricing edit actions responsive */
   .pricing-edit-actions {
     flex-direction: column;
