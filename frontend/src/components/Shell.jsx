@@ -5,9 +5,6 @@ export default function Shell({ title, subtitle, children, actions }) {
     <div className="shell">
       <header className="shell-header">
         <div className="shell-header-left">
-          <div className="shell-logo">
-            <Diamond />
-          </div>
           <div>
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}

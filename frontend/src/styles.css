@@ -291,10 +291,10 @@ body {
 
 .shell-header h1 {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.75rem;
+  font-size: 2.5rem;
   font-weight: 900;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
   background: linear-gradient(135deg, var(--primary-light), var(--accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1701,7 +1701,8 @@ tbody tr:last-child td {
   }
 
   .shell-header h1 {
-    font-size: 1.05rem;
+    font-size: 2.0rem;
+    letter-spacing: -0.03em;
   }
 
   .shell-header p {
@@ -2018,7 +2019,8 @@ tbody tr:last-child td {
   }
 
   .shell-header h1 {
-    font-size: 1.1rem;
+    font-size: 2.0rem;
+    letter-spacing: -0.03em;
   }
 
   .stats-grid {
@@ -2106,8 +2108,9 @@ tbody tr:last-child td {
     justify-content: center;
   }
   .shell-header h1 {
-    max-width: 150px;
-    font-size: 1rem;
+    max-width: none;
+    font-size: 1.6rem;
+    letter-spacing: -0.03em;
   }
   .shell-header p {
     max-width: 180px;
