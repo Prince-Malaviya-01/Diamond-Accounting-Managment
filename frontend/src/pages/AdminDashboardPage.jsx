@@ -103,6 +103,7 @@ export default function AdminDashboardPage() {
   const [retroactiveDate, setRetroactiveDate] = useState("");
   const [editingPrices, setEditingPrices] = useState(null);
   const [loadingPrices, setLoadingPrices] = useState(false);
+  const [savingPrices, setSavingPrices] = useState(false);
 
   // Add Client Modal state
   const [showAddClientModal, setShowAddClientModal] = useState(false);
@@ -1146,6 +1147,8 @@ export default function AdminDashboardPage() {
   };
 
   const handleSavePrices = async () => {
+    if (savingPrices) return;
+    setSavingPrices(true);
     try {
       const payload = {
         items: editingPrices,
@@ -1158,6 +1161,8 @@ export default function AdminDashboardPage() {
       load(); // Refresh jobs to ensure displayed rates stay locked
     } catch {
       showMsg("Failed to save pricing configuration");
+    } finally {
+      setSavingPrices(false);
     }
   };
 
@@ -2366,7 +2371,9 @@ export default function AdminDashboardPage() {
                 </button>
                 <div className="action-buttons">
                   <button className="btn-ghost" onClick={() => setEditingPrices(null)}>Cancel</button>
-                  <button className="btn-primary" onClick={handleSavePrices}>Submit Changes</button>
+                  <button className="btn-primary" onClick={handleSavePrices} disabled={savingPrices}>
+                    {savingPrices ? "Saving..." : "Submit Changes"}
+                  </button>
                 </div>
               </div>
             )}
