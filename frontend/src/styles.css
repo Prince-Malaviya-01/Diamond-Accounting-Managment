@@ -824,16 +824,22 @@ thead {
 }
 
 th {
-  padding: 8px;
+  padding: 12px 8px;
   text-align: left;
   font-weight: 700;
   font-size: .74rem;
   text-transform: uppercase;
   letter-spacing: .06em;
   color: var(--text-secondary);
-  border-bottom: none;
+  border-bottom: 1px solid var(--border-light) !important;
   white-space: normal;
   word-wrap: break-word;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-card);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
 }
 
 td {
@@ -1820,6 +1826,8 @@ tbody tr:last-child td {
 
 .table-container {
   width: 100%;
+  max-height: 600px; /* Limits size to ~15 lines of records */
+  overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-sm);
