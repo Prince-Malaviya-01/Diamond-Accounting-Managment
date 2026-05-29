@@ -516,6 +516,18 @@ body {
   padding-left: 36px !important;
 }
 
+/* Bulk Action Grid */
+.bulk-action-grid {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.bulk-action-grid button {
+  margin: 0;
+}
+
 /* Pricing edit footer actions */
 .pricing-edit-actions {
   margin-top: 20px;
@@ -2727,6 +2739,25 @@ html.theme-transition * {
   
   .log-item .log-details {
     width: 100% !important;
+  }
+
+  /* Bulk Action Grid Mobile Responsive (2 columns, 2 rows) */
+  .bulk-action-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  
+  .bulk-action-grid button {
+    width: 100% !important;
+    justify-content: center !important;
+    height: 40px !important;
+    margin: 0 !important;
+  }
+  
+  .bulk-action-grid button.full-row {
+    grid-column: span 2 !important;
   }
 }
 

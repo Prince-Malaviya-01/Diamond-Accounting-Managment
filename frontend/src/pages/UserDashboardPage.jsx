@@ -542,7 +542,7 @@ export default function UserDashboardPage() {
                 : "Drag & drop files here or click to browse"
               }
             </p>
-            <div className="upload-hint">Stone ID file name પરથી auto detect થશે</div>
+            <div className="upload-hint">Stone ID will be auto-detected from the file name</div>
           </div>
           <input
             ref={fileInputRef}
@@ -589,6 +589,7 @@ export default function UserDashboardPage() {
           <div style={{ position: "relative", marginBottom: 16 }}>
             <Search size={18} style={{ position: "absolute", left: 12, top: 11, color: "#94a3b8" }} />
             <input
+              className="search-input"
               placeholder="Search stones by ID or filename..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -606,7 +607,7 @@ export default function UserDashboardPage() {
               <span className="panel-badge green">{completed.length}</span>
             </div>
 
-            <div className="btn-group" style={{ marginBottom: 12 }}>
+            <div className="bulk-action-grid" style={{ marginBottom: 12 }}>
               <button className="btn-ghost btn-sm" onClick={selectAll}>Select All</button>
               <button className="btn-ghost btn-sm" onClick={clearSelection}>Clear</button>
               <button className="btn-primary btn-sm" onClick={downloadSelected} disabled={!selectedIds.length}>
@@ -671,10 +672,10 @@ export default function UserDashboardPage() {
               <span className="panel-badge orange">{activeJobs.length}</span>
             </div>
 
-            <div className="btn-group" style={{ marginBottom: 12 }}>
+            <div className="bulk-action-grid" style={{ marginBottom: 12 }}>
               <button className="btn-ghost btn-sm" onClick={selectAllActive}>Select All</button>
               <button className="btn-ghost btn-sm" onClick={clearSelectionActive}>Clear</button>
-              <button className="btn-danger btn-sm" onClick={deleteSelectedActive} disabled={!selectedActiveIds.length}>
+              <button className="btn-danger btn-sm full-row" onClick={deleteSelectedActive} disabled={!selectedActiveIds.length}>
                 <Trash2 size={14} /> Delete ({selectedActiveIds.length})
               </button>
             </div>
@@ -737,7 +738,7 @@ export default function UserDashboardPage() {
                 <h3>Stone Report</h3>
               </div>
             </div>
-            <div className="filter-row" style={{ marginBottom: 24 }}>
+            <div className="filter-row billing-controls-row" style={{ marginBottom: 24 }}>
               <div className="filter-group">
                 <label><Calendar size={14} /> Month</label>
                 <CustomSelect
@@ -756,9 +757,11 @@ export default function UserDashboardPage() {
                   style={{ width: "120px" }}
                 />
               </div>
-              <button className="btn-primary btn-sm" onClick={loadStoneReport} style={{ alignSelf: "flex-end" }}>
-                <Filter size={14} /> Load Report
-              </button>
+              <div className="generate-btn-wrapper">
+                <button className="btn-primary btn-sm" onClick={loadStoneReport}>
+                  <Filter size={14} /> Load Report
+                </button>
+              </div>
             </div>
 
             {/* Report summary cards */}
@@ -804,7 +807,7 @@ export default function UserDashboardPage() {
                     <tr><td colSpan={5}>
                       <div className="empty-state">
                         <FileSpreadsheet size={32} />
-                        <p>{MONTHS[reportMonth]} {reportYear} માં કોઈ completed stone નથી</p>
+                        <p>No completed stones found in {MONTHS[reportMonth]} {reportYear}</p>
                       </div>
                     </td></tr>
                   )}
@@ -1010,16 +1013,16 @@ export default function UserDashboardPage() {
 
           {/* Recent Records */}
           <div className="panel">
-            <div className="panel-header">
+            <div className="panel-header pricing-panel-header">
               <div className="panel-title">
                 <div className="panel-icon purple"><Receipt size={18} /></div>
                 <h3>Recent Recorded Entries</h3>
+                <span className="panel-badge purple" style={{ marginLeft: 8 }}>{filteredReceivedTotals.length}</span>
               </div>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div className="panel-controls">
                 <button className="btn-primary btn-sm" onClick={handleDownloadStatement}>
                   <Download size={14} /> Download Statement (PDF)
                 </button>
-                <span className="panel-badge purple">{filteredReceivedTotals.length}</span>
               </div>
             </div>
             <div className="table-container">

@@ -1929,7 +1929,7 @@ export default function AdminDashboardPage() {
                           <tr><td colSpan={7}>
                             <div className="empty-state">
                               <Receipt size={28} />
-                              <p>{MONTHS[billingMonth]} {billingYear} માં કોઈ billing data નથી</p>
+                              <p>No billing data found for {MONTHS[billingMonth]} {billingYear}</p>
                             </div>
                           </td></tr>
                         )}
