@@ -472,6 +472,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .panel-title h3 {
@@ -480,6 +481,7 @@ body {
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 /* Panel Header Controls & Billing Controls */
