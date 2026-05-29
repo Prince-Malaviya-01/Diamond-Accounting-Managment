@@ -479,6 +479,35 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* Panel Header Controls & Billing Controls */
+.panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-controls .control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-controls .control-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.billing-controls-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.billing-controls-row .generate-btn-wrapper {
+  margin-left: auto;
+}
+
 .panel-title .panel-icon {
   width: 36px;
   height: 36px;
@@ -2350,6 +2379,57 @@ html.theme-transition * {
   .panel {
     padding: 20px !important;
     border-radius: 20px !important;
+  }
+
+  .pricing-panel-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 14px !important;
+  }
+  
+  .panel-controls {
+    flex-direction: column;
+    align-items: stretch !important;
+    width: 100%;
+    gap: 12px !important;
+  }
+  
+  .panel-controls .control-group {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .panel-controls .control-group > div {
+    flex: 1;
+    max-width: 240px;
+  }
+  
+  .panel-controls button {
+    width: 100%;
+    justify-content: center;
+    height: 40px;
+  }
+
+  .billing-controls-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+  
+  .billing-controls-row .generate-btn-wrapper {
+    margin-left: 0;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 8px;
+  }
+  
+  .billing-controls-row .generate-btn-wrapper button {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    height: 44px;
   }
 
   /* Table horizontal responsiveness */

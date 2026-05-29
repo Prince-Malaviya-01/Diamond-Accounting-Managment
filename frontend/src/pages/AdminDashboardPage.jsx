@@ -1810,7 +1810,7 @@ export default function AdminDashboardPage() {
                   <h3>Billing Controls</h3>
                 </div>
               </div>
-              <div className="filter-row">
+              <div className="filter-row billing-controls-row">
                 <div className="filter-group">
                   <label><Calendar size={14} /> Month</label>
                   <CustomSelect
@@ -1829,11 +1829,12 @@ export default function AdminDashboardPage() {
                     style={{ width: "120px" }}
                   />
                 </div>
-                <button className="btn-primary" onClick={() => handleGenerateInvoices()} disabled={generatingInvoice}
-                  style={{ alignSelf: "flex-end" }}>
-                  <FileText size={16} />
-                  {generatingInvoice ? "Generating..." : `Generate Invoices — ${MONTHS[billingMonth]} ${billingYear}`}
-                </button>
+                <div className="generate-btn-wrapper">
+                  <button className="btn-primary" onClick={() => handleGenerateInvoices()} disabled={generatingInvoice}>
+                    <FileText size={16} />
+                    {generatingInvoice ? "Generating..." : `Generate Invoices — ${MONTHS[billingMonth]} ${billingYear}`}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2240,15 +2241,15 @@ export default function AdminDashboardPage() {
         {/* ── Tab: Weight & Price ── */}
         {activeTab === "pricing" && (
           <div className="panel">
-            <div className="panel-header">
+            <div className="panel-header pricing-panel-header">
               <div className="panel-title">
                 <div className="panel-icon green"><DollarSign size={18} /></div>
                 <h3>Weight & Price Configuration</h3>
               </div>
-              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <div className="panel-controls">
                 {!editingPrices && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 500 }}>Select Client:</span>
+                  <div className="control-group">
+                    <span className="control-label">Select Client:</span>
                     <CustomSelect
                       options={[
                         { label: "Global Default", value: "global" },
