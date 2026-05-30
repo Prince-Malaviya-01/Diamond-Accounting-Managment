@@ -3506,7 +3506,7 @@ export default function AdminDashboardPage() {
       {/* ── Add Client Modal ── */}
       {showAddClientModal && (
         <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: 460 }}>
+          <div className="modal light-modal" style={{ maxWidth: 460 }}>
             <div className="modal-header">
               <div className="panel-title">
                 <UserPlus size={20} className="text-primary" />

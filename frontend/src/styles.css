@@ -1995,6 +1995,80 @@ tbody tr:last-child td {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1) !important;
 }
 
+/* ── Light-Modal Theme Override (For #E5E5E5 modals) ── */
+.modal.light-modal {
+  background: #E5E5E5 !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Text and Labels readability inside light modals */
+.modal.light-modal h3,
+.modal.light-modal label,
+.modal.light-modal span,
+.modal.light-modal strong {
+  color: #1f2937 !important;
+}
+
+.modal.light-modal p {
+  color: #4b5563 !important;
+}
+
+/* Input Fields readability inside light modals */
+.modal.light-modal input,
+.modal.light-modal select {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #0f172a !important;
+}
+
+.modal.light-modal input::placeholder {
+  color: #9ca3af !important;
+}
+
+.modal.light-modal input:focus,
+.modal.light-modal select:focus {
+  background: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Modal header/footer blend inside light modals */
+.modal.light-modal .modal-header {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.modal.light-modal .modal-footer {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Cancel Button inside light modals */
+.modal.light-modal .modal-footer .btn-outline {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  color: #4b5563 !important;
+}
+
+.modal.light-modal .modal-footer .btn-outline:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  color: #ef4444 !important;
+}
+
+.modal.light-modal .modal-header .btn-icon {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.15) !important;
+}
+
+.modal.light-modal .modal-header .btn-icon:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+
 .form-group {
   margin-bottom: 20px;
 }
