@@ -62,13 +62,13 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     if not user:
         print(f"DEBUG: User '{username}' not found in database")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Username is not found")
         
     pwd_match = verify_password(payload.password, user.password)
     print(f"DEBUG: Password match for '{username}': {pwd_match}")
     
     if not pwd_match:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The password is incorrect. Please try again.")
 
     # Enforce Client vs Admin cross-login restrictions
     if payload.is_admin_login and not user.is_admin:
