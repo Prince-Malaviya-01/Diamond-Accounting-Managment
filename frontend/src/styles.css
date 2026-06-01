@@ -2,7 +2,7 @@
    Diamond Processing System – Premium Luxury High-Tech UI
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+/* Google Fonts removed from @import to prevent render-blocking - loaded asynchronously in index.html */
 
 :root {
   --bg: #f4f6fa;
@@ -10,8 +10,8 @@
   --bg-dark: #090f1e;
   --bg-darker: #040812;
   --text: #0f172a;
-  --text-secondary: #4b5563;
-  --text-light: #9ca3af;
+  --text-secondary: #334155; /* Enhanced contrast Slate-700 (6.0:1 on #f4f6fa) */
+  --text-light: #6b7280; /* Enhanced contrast Gray-500 */
   --border: rgba(99, 102, 241, 0.18);
   --border-light: rgba(99, 102, 241, 0.1);
   --border-glass: rgba(255, 255, 255, 0.55);
@@ -2498,6 +2498,16 @@ html.theme-transition * {
   margin-bottom: 40px;
 }
 
+.landing-footer-grid a {
+  color: var(--text-secondary) !important;
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.landing-footer-grid a:hover {
+  color: var(--primary) !important;
+}
+
 /* ============================================================
    RESPONSIVE DESIGN SYSTEM – ADAPTIVE MEDIA QUERIES
    ============================================================ */
@@ -3082,4 +3092,18 @@ html.theme-transition * {
     text-align: center !important;
     margin: 4px auto 0 auto !important;
   }
+}
+
+/* Helper classes for text coloring */
+.text-primary {
+  color: var(--primary) !important;
+}
+.text-success {
+  color: var(--success) !important;
+}
+.text-danger {
+  color: var(--danger) !important;
+}
+.text-warning {
+  color: var(--warning) !important;
 }

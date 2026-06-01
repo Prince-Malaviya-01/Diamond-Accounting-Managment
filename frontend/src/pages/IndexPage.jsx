@@ -70,10 +70,6 @@ export default function IndexPage() {
       overflowX: "hidden",
       fontFamily: "'Outfit', sans-serif"
     }}>
-      {/* Decorative Satin Glow Blobs */}
-      <div className="glow-blob blob-1 blob-float-1" style={{ position: "absolute", top: "-5%", left: "10%", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
-      <div className="glow-blob blob-2 blob-float-2" style={{ position: "absolute", bottom: "20%", right: "5%", width: "600px", height: "600px", background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
-
       {/* ── HEADER ── */}
       <header className="shell-header responsive-landing-header anim-fade-in-down">
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "inherit" }}>
@@ -108,7 +104,7 @@ export default function IndexPage() {
               padding: "8px 20px", 
               fontWeight: 600, 
               fontSize: "0.85rem",
-              background: "linear-gradient(135deg, var(--primary), var(--primary-light))",
+              background: "linear-gradient(135deg, var(--primary), var(--accent))",
               boxShadow: "0 4px 14px rgba(99, 102, 241, 0.4)",
               textDecoration: "none",
               display: "inline-flex",
@@ -120,7 +116,12 @@ export default function IndexPage() {
         </div>
       </header>
 
-      {/* ── HERO SECTION ── */}
+      <main>
+        {/* Decorative Satin Glow Blobs */}
+        <div className="glow-blob blob-1 blob-float-1" style={{ position: "absolute", top: "-5%", left: "10%", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
+        <div className="glow-blob blob-2 blob-float-2" style={{ position: "absolute", bottom: "20%", right: "5%", width: "600px", height: "600px", background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", pointerEvents: "none" }}></div>
+
+        {/* ── HERO SECTION ── */}
       <section className="landing-hero-section">
         <div style={{ 
           display: "inline-flex", 
@@ -128,7 +129,7 @@ export default function IndexPage() {
           gap: "8px", 
           background: "var(--primary-bg)", 
           border: "1px solid var(--border)", 
-          color: "var(--primary-light)", 
+          color: "var(--primary)", 
           borderRadius: "30px", 
           padding: "6px 16px", 
           fontSize: "0.8rem", 
@@ -164,7 +165,7 @@ export default function IndexPage() {
               fontSize: "0.95rem",
               fontWeight: 600,
               borderRadius: "var(--radius-sm)",
-              background: "linear-gradient(135deg, var(--primary), var(--primary-light))",
+              background: "linear-gradient(135deg, var(--primary), var(--accent))",
               boxShadow: "0 8px 24px rgba(99, 102, 241, 0.3)",
               textDecoration: "none",
               display: "inline-flex",
@@ -200,7 +201,7 @@ export default function IndexPage() {
                 fontSize: "2.8rem", 
                 fontWeight: 800, 
                 margin: "0 0 6px 0",
-                background: "linear-gradient(135deg, var(--primary-light), var(--accent))",
+                background: "linear-gradient(135deg, var(--primary), var(--accent))",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent"
               }}>
@@ -313,7 +314,7 @@ export default function IndexPage() {
         </div>
       </section>
 
-
+      </main>
 
       {/* ── DETAILED PROFESSIONAL FOOTER ── */}
       <footer style={{
@@ -360,8 +361,8 @@ export default function IndexPage() {
           <div>
             <h4 style={{ fontSize: "0.9rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "16px" }}>System Portals</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.85rem" }}>
-              <Link to="/login/client" style={{ color: "var(--text-secondary)", textDecoration: "none", transition: "color 0.2s" }}>Client Portal Login</Link>
-              <Link to="/login/admin" style={{ color: "var(--text-secondary)", textDecoration: "none", transition: "color 0.2s" }}>Admin Control Center</Link>
+              <Link to="/login/client">Client Portal Login</Link>
+              <Link to="/login/admin">Admin Control Center</Link>
             </div>
           </div>
 
@@ -393,7 +394,7 @@ export default function IndexPage() {
           paddingTop: "24px",
           textAlign: "center",
           fontSize: "0.8rem",
-          color: "var(--text-light)",
+          color: "var(--text-secondary)",
           display: "flex",
           justifyContent: "space-between",
           flexWrap: "wrap",

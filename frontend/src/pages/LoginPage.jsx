@@ -201,6 +201,7 @@ export default function LoginPage({ mode = "client" }) {
                 <input
                   type="email"
                   placeholder="Enter registered Admin Email"
+                  aria-label="Registered Admin Email"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                   required
@@ -222,6 +223,7 @@ export default function LoginPage({ mode = "client" }) {
                 <input
                   type="text"
                   placeholder="Enter 6-Digit OTP"
+                  aria-label="6-Digit OTP"
                   value={forgotOtp}
                   onChange={(e) => setForgotOtp(e.target.value)}
                   required
@@ -243,6 +245,7 @@ export default function LoginPage({ mode = "client" }) {
                 <input
                   type={showForgotPwd ? "text" : "password"}
                   placeholder="New Password"
+                  aria-label="New Password"
                   value={forgotPasswords.newPwd}
                   onChange={(e) => setForgotPasswords({ ...forgotPasswords, newPwd: e.target.value })}
                   required
@@ -252,6 +255,7 @@ export default function LoginPage({ mode = "client" }) {
                 <button
                   type="button"
                   onClick={() => setShowForgotPwd(!showForgotPwd)}
+                  aria-label={showForgotPwd ? "Hide new password" : "Show new password"}
                   style={{
                     position: "absolute", right: 12, top: "50%",
                     transform: "translateY(-50%)",
@@ -267,6 +271,7 @@ export default function LoginPage({ mode = "client" }) {
                 <input
                   type={showConfirmForgotPwd ? "text" : "password"}
                   placeholder="Confirm New Password"
+                  aria-label="Confirm New Password"
                   value={forgotPasswords.confirmPwd}
                   onChange={(e) => setForgotPasswords({ ...forgotPasswords, confirmPwd: e.target.value })}
                   required
@@ -275,6 +280,7 @@ export default function LoginPage({ mode = "client" }) {
                 <button
                   type="button"
                   onClick={() => setShowConfirmForgotPwd(!showConfirmForgotPwd)}
+                  aria-label={showConfirmForgotPwd ? "Hide confirm password" : "Show confirm password"}
                   style={{
                     position: "absolute", right: 12, top: "50%",
                     transform: "translateY(-50%)",
@@ -308,6 +314,7 @@ export default function LoginPage({ mode = "client" }) {
           <div style={{ position: "relative", marginBottom: "14px" }}>
             <input
               placeholder="Username"
+              aria-label="Username"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
               required
@@ -321,6 +328,7 @@ export default function LoginPage({ mode = "client" }) {
             <input
               type={showPwd ? "text" : "password"}
               placeholder="Password"
+              aria-label="Password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
@@ -329,6 +337,7 @@ export default function LoginPage({ mode = "client" }) {
             <button
               type="button"
               onClick={() => setShowPwd(!showPwd)}
+              aria-label={showPwd ? "Hide password" : "Show password"}
               style={{
                 position: "absolute", right: 12, top: "50%",
                 transform: "translateY(-50%)",
