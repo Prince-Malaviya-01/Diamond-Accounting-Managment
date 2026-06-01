@@ -593,6 +593,12 @@ export default function AdminDashboardPage() {
   }, [load, loadPending, loadPriceConfig, loadProfits, loadLocalBackupStatus]);
 
   useEffect(() => {
+    // Force light mode on admin dashboard mount
+    document.documentElement.setAttribute("data-theme", "light");
+    localStorage.setItem("theme", "light");
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem("adminActiveTab", activeTab);
     if (activeTab === "accounts_profit") {
       loadProfits();

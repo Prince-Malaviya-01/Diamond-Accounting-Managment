@@ -1,11 +1,14 @@
-import { useState } from "react";
-import { Diamond, Eye, EyeOff, LogIn, ArrowLeft, KeyRound, Mail, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Diamond, Eye, EyeOff, LogIn, ArrowLeft, KeyRound, Mail, ShieldAlert, CheckCircle2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import ThemeToggle from "../components/ThemeToggle";
 
-export default function LoginPage({ mode = "client" }) {
+export default function LoginPage({ mode = "client", isModal = false, onClose }) {
   const navigate = useNavigate();
   const isAdminLogin = mode === "admin";
+
+
 
   // Login Form State
   const [form, setForm] = useState({ username: "", password: "" });
@@ -124,33 +127,112 @@ export default function LoginPage({ mode = "client" }) {
     setForgotSuccess("");
   };
 
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
+    }
+  };
+
+  const containerStyle = isModal ? {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(3, 4, 8, 0.75)",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
+    padding: "20px",
+    animation: "fadeIn 0.3s ease"
+  } : { position: "relative" };
+
+  const containerClass = isModal ? "login-modal-overlay" : "auth-page";
+
   return (
-    <div className="auth-page" style={{ position: "relative" }}>
+    <div
+      className={containerClass}
+      style={containerStyle}
+      onClick={isModal ? handleBackdropClick : undefined}
+    >
       {/* Ambient decorative blobs */}
       <div className="glow-blob blob-1" style={{ top: "-10%", left: "15%" }}></div>
       <div className="glow-blob blob-2" style={{ bottom: "-10%", right: "10%" }}></div>
 
       {/* Floating Home Back Button */}
-      <button 
-        className="btn btn-outline btn-sm btn-back-home" 
-        onClick={() => navigate("/")}
-        style={{
+      {!isModal && (
+        <button 
+          className="btn btn-outline btn-sm btn-back-home" 
+          onClick={() => navigate("/")}
+          style={{
+            position: "absolute",
+            top: "24px",
+            left: "24px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            borderRadius: "var(--radius-sm)",
+            zIndex: 1000
+          }}
+        >
+          <ArrowLeft size={14} /> Back to Home
+        </button>
+      )}
+
+      {/* Floating Theme Toggle */}
+      {!isModal && (
+        <div style={{
           position: "absolute",
           top: "24px",
-          left: "24px",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          borderRadius: "var(--radius-sm)",
+          right: "24px",
           zIndex: 1000
-        }}
-      >
-        <ArrowLeft size={14} /> Back to Home
-      </button>
+        }}>
+          <ThemeToggle />
+        </div>
+      )}
 
       {/* ── CARD: FORGOT PASSWORD FLOW ── */}
       {forgotMode ? (
-        <div className="auth-card" style={{ animation: "modalSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+        <div className="auth-card" style={{ position: "relative", animation: "modalSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+          {isModal && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close modal"
+              className="btn-close-modal"
+              style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid var(--border)",
+                borderRadius: "50%",
+                width: "36px",
+                height: "36px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text)",
+                cursor: "pointer",
+                transition: "all var(--transition)",
+                padding: 0,
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "rotate(90deg)";
+                e.currentTarget.style.background = "var(--primary-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+              }}
+            >
+              <X size={18} />
+            </button>
+          )}
           <div className="logo-icon primary">
             <KeyRound size={28} />
           </div>
@@ -304,7 +386,43 @@ export default function LoginPage({ mode = "client" }) {
         </div>
       ) : (
         /* ── CARD: STANDARD LOGIN FLOW ── */
-        <form className="auth-card" onSubmit={handleLoginSubmit} style={{ animation: "modalSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+        <form className="auth-card" onSubmit={handleLoginSubmit} style={{ position: "relative", animation: "modalSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+          {isModal && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close modal"
+              className="btn-close-modal"
+              style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid var(--border)",
+                borderRadius: "50%",
+                width: "36px",
+                height: "36px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text)",
+                cursor: "pointer",
+                transition: "all var(--transition)",
+                padding: 0,
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "rotate(90deg)";
+                e.currentTarget.style.background = "var(--primary-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+              }}
+            >
+              <X size={18} />
+            </button>
+          )}
           <div className="logo-icon primary">
             <Diamond size={28} />
           </div>

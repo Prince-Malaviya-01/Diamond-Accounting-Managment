@@ -1,9 +1,9 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import IndexPage from "./pages/IndexPage";
+import LoginPage from "./pages/LoginPage";
 
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
-const LoginPage = lazy(() => import("./pages/LoginPage"));
 const UserDashboardPage = lazy(() => import("./pages/UserDashboardPage"));
 
 function RequireAuth({ children, adminOnly = false }) {
@@ -22,7 +22,7 @@ function RequireAuth({ children, adminOnly = false }) {
 
 export default function App() {
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") || "light";
+    const savedTheme = localStorage.getItem("theme") || "dark";
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 

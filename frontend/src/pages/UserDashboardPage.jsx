@@ -166,6 +166,12 @@ export default function UserDashboardPage() {
     localStorage.setItem("clientActiveTab", activeTab);
   }, [activeTab, loadStoneReport, loadProfits]);
 
+  useEffect(() => {
+    // Force light mode on client dashboard mount
+    document.documentElement.setAttribute("data-theme", "light");
+    localStorage.setItem("theme", "light");
+  }, []);
+
   const handleDownloadStatement = async () => {
     try {
       showMsg("Generating Statement PDF...");
