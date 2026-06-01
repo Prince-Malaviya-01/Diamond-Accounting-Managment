@@ -593,9 +593,8 @@ export default function AdminDashboardPage() {
   }, [load, loadPending, loadPriceConfig, loadProfits, loadLocalBackupStatus]);
 
   useEffect(() => {
-    // Force light mode on admin dashboard mount
-    document.documentElement.setAttribute("data-theme", "light");
-    localStorage.setItem("theme", "light");
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
   useEffect(() => {
@@ -1650,7 +1649,7 @@ export default function AdminDashboardPage() {
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={10}>
+                    <tr><td colSpan={12}>
                       <div className="empty-state"><Package size={28} /><p>No jobs match filters</p></div>
                     </td></tr>
                   )}
@@ -1745,9 +1744,9 @@ export default function AdminDashboardPage() {
                 </div>
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={analytics.daily_uploads}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                    <XAxis dataKey="day" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} />
+                    <YAxis tick={{ fontSize: 12, fill: "var(--text-secondary)" }} />
                     <Tooltip 
                       cursor={false}
                       contentStyle={{ 
@@ -1811,7 +1810,7 @@ export default function AdminDashboardPage() {
                     <span className="log-action">{log.action}</span>
                     <span className="log-details">{log.details}</span>
                     {log.created_at && (
-                      <span style={{ fontSize: ".75rem", color: "#94a3b8", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: ".75rem", color: "var(--text-light)", whiteSpace: "nowrap" }}>
                         {new Date(log.created_at).toLocaleString()}
                       </span>
                     )}

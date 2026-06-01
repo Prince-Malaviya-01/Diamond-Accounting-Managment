@@ -167,9 +167,8 @@ export default function UserDashboardPage() {
   }, [activeTab, loadStoneReport, loadProfits]);
 
   useEffect(() => {
-    // Force light mode on client dashboard mount
-    document.documentElement.setAttribute("data-theme", "light");
-    localStorage.setItem("theme", "light");
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
   const handleDownloadStatement = async () => {
@@ -593,7 +592,7 @@ export default function UserDashboardPage() {
         <>
           {/* Search */}
           <div style={{ position: "relative", marginBottom: 16 }}>
-            <Search size={18} style={{ position: "absolute", left: 12, top: 11, color: "#94a3b8" }} />
+            <Search size={18} style={{ position: "absolute", left: 12, top: 11, color: "var(--text-light)" }} />
             <input
               className="search-input"
               placeholder="Search stones by ID or filename..."
@@ -645,7 +644,7 @@ export default function UserDashboardPage() {
                     <tr key={job.id} className={selectedIds.includes(job.id) ? "selected-row" : ""}>
                       <td><SelectionBox checked={selectedIds.includes(job.id)} onChange={() => toggleSelect(job.id)} /></td>
                       <td><strong>{job.stone_id}</strong></td>
-                      <td style={{ color: "#64748b", fontSize: ".85rem" }}>{job.completed_filename || "-"}</td>
+                      <td style={{ color: "var(--text-light)", fontSize: ".85rem" }}>{job.completed_filename || "-"}</td>
                       <td style={{ fontSize: ".85rem" }}>{job.completed_at ? new Date(job.completed_at).toLocaleString('en-GB') : "-"}</td>
                       <td>
                         <div className="btn-group">
@@ -712,7 +711,7 @@ export default function UserDashboardPage() {
                       <td><strong>{job.stone_id}</strong></td>
                       <td>{job.weight || "-"}</td>
                       <td><StatusBadge status={job.status} /></td>
-                      <td style={{ color: "#64748b", fontSize: ".85rem" }}>{job.upload_filename || "-"}</td>
+                      <td style={{ color: "var(--text-light)", fontSize: ".85rem" }}>{job.upload_filename || "-"}</td>
                       <td style={{ fontSize: ".85rem" }}>{job.created_at ? new Date(job.created_at).toLocaleString('en-GB') : "-"}</td>
                       <td style={{ fontSize: ".85rem" }}>{job.processing_started_at ? new Date(job.processing_started_at).toLocaleString('en-GB') : "-"}</td>
                       <td>

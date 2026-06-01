@@ -632,9 +632,8 @@ export default function IndexPage() {
   const [loginModal, setLoginModal] = useState({ isOpen: false, mode: "client" });
 
   useEffect(() => {
-    // Force dark mode on main landing page mount
-    document.documentElement.setAttribute("data-theme", "dark");
-    localStorage.setItem("theme", "dark");
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
   const openLogin = (mode) => {
