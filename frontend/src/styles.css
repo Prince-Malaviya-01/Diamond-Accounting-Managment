@@ -39,6 +39,7 @@
   --glass: blur(28px) saturate(220%);
   --bg-stat: rgba(241, 245, 249, 0.8);
   --bg-select-solid: #ffffff;
+  --btn-shadow-color: rgba(139, 92, 246, 0.35);
 }
 
 [data-theme='dark'] {
@@ -71,6 +72,7 @@
   --accent-light: #22d3ee;
   --bg-stat: rgba(12, 15, 30, 0.8);
   --bg-select-solid: #0b0d19;
+  --btn-shadow-color: rgba(6, 182, 212, 0.35);
 }
 
 [data-theme='dark'] .shell {

@@ -161,7 +161,7 @@ export default function IndexPage() {
               fontWeight: 600,
               fontSize: "0.85rem",
               background: "linear-gradient(135deg, var(--primary), var(--accent))",
-              boxShadow: "0 4px 14px rgba(6, 182, 212, 0.3)",
+              boxShadow: "0 4px 14px var(--btn-shadow-color)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center"
@@ -209,7 +209,7 @@ export default function IndexPage() {
                       fontWeight: 600,
                       borderRadius: "var(--radius-sm)",
                       background: "linear-gradient(135deg, var(--primary), var(--accent))",
-                      boxShadow: "0 8px 24px rgba(6, 182, 212, 0.3)",
+                      boxShadow: "0 8px 24px var(--btn-shadow-color)",
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center"
@@ -356,7 +356,7 @@ export default function IndexPage() {
                     fontWeight: 600,
                     borderRadius: "var(--radius-sm)",
                     background: "linear-gradient(135deg, var(--primary), var(--accent))",
-                    boxShadow: "0 8px 24px rgba(6, 182, 212, 0.3)",
+                    boxShadow: "0 8px 24px var(--btn-shadow-color)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center"
