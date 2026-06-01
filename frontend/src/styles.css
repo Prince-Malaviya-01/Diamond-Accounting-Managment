@@ -2846,8 +2846,8 @@ html.theme-transition * {
     transform: translateY(30px) !important;
   }
   .landing-hero-title {
-    font-size: 2.3rem !important;
-    line-height: 1.2 !important;
+    font-size: 2.6rem !important;
+    line-height: 1.15 !important;
   }
   .landing-hero-desc {
     font-size: 0.95rem !important;
@@ -2958,7 +2958,7 @@ html.theme-transition * {
 
   /* Title font adjustments */
   .landing-hero-title {
-    font-size: 1.8rem !important;
+    font-size: 2.2rem !important;
   }
   .landing-hero-desc {
     font-size: 0.88rem !important;
