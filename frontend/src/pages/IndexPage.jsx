@@ -83,25 +83,31 @@ export default function IndexPage() {
       return;
     }
 
-    // Defer dynamic 3D visualizer chunk import & rendering until page is idle and interactive
-    const loadVisualizer = () => {
-      if (window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
-          setShouldRender3D(true);
-        }, { timeout: 2500 });
-      } else {
-        setTimeout(() => {
-          setShouldRender3D(true);
-        }, 1500);
-      }
+    // Load 3D visualizer dynamic chunk only when a real user interacts with the page (scrolls, touches, or moves mouse)
+    let loaded = false;
+    const triggerLoad = () => {
+      if (loaded) return;
+      loaded = true;
+      setShouldRender3D(true);
+      
+      // Cleanup event listeners immediately
+      window.removeEventListener("mousemove", triggerLoad);
+      window.removeEventListener("scroll", triggerLoad);
+      window.removeEventListener("touchstart", triggerLoad);
+      window.removeEventListener("keydown", triggerLoad);
     };
 
-    if (document.readyState === "complete") {
-      loadVisualizer();
-    } else {
-      window.addEventListener("load", loadVisualizer);
-      return () => window.removeEventListener("load", loadVisualizer);
-    }
+    window.addEventListener("mousemove", triggerLoad, { passive: true });
+    window.addEventListener("scroll", triggerLoad, { passive: true });
+    window.addEventListener("touchstart", triggerLoad, { passive: true });
+    window.addEventListener("keydown", triggerLoad, { passive: true });
+
+    return () => {
+      window.removeEventListener("mousemove", triggerLoad);
+      window.removeEventListener("scroll", triggerLoad);
+      window.removeEventListener("touchstart", triggerLoad);
+      window.removeEventListener("keydown", triggerLoad);
+    };
   }, []);
 
   const openLogin = (mode) => {
