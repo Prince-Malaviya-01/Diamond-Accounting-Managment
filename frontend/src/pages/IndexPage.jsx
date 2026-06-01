@@ -65,6 +65,7 @@ function AnimatedDiamond() {
   const targetRotationX = useRef(0);
   const targetRotationY = useRef(0);
   const [hasError, setHasError] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   // React theme state starts from current document theme
   const [currentTheme, setCurrentTheme] = useState(
@@ -487,6 +488,7 @@ function AnimatedDiamond() {
 
       // Render first frame synchronously to prevent any initial blank frame/canvas flash
       renderer.render(scene, camera);
+      setIsReady(true);
 
       animate();
 
@@ -605,7 +607,9 @@ function AnimatedDiamond() {
             zIndex: 2,
             cursor: isDragging.current ? "grabbing" : "grab",
             userSelect: "none",
-            touchAction: "none"
+            touchAction: "none",
+            opacity: isReady ? 1 : 0,
+            transition: "opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1)"
           }}
         />
 
