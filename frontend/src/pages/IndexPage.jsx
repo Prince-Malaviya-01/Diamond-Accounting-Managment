@@ -180,6 +180,7 @@ function AnimatedDiamond() {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.8;
+      renderer.setClearColor(0x000000, 0);
       
       const initW = Math.max(container.clientWidth, 400);
       const initH = Math.max(container.clientHeight, 400);
@@ -193,6 +194,8 @@ function AnimatedDiamond() {
       renderer.domElement.style.position = "absolute";
       renderer.domElement.style.top = "0";
       renderer.domElement.style.left = "0";
+      renderer.domElement.style.background = "transparent";
+      renderer.domElement.style.backgroundColor = "transparent";
 
       resizeObserver = new ResizeObserver((entries) => {
         for (let entry of entries) {
@@ -481,6 +484,10 @@ function AnimatedDiamond() {
 
         renderer.render(scene, camera);
       };
+
+      // Render first frame synchronously to prevent any initial blank frame/canvas flash
+      renderer.render(scene, camera);
+
       animate();
 
       cleanup = () => {
