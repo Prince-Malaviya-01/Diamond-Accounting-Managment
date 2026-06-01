@@ -3,81 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Diamond Processing Management</title>
+    <title>MagicFile — Diamond Processing &amp; Accounting Management</title>
+    <meta name="description" content="MagicFile is a premium high-tech diamond operations console and accounting management system for diamond manufacturers. Sync reports silently to local D:\ storage." />
+    <meta name="keywords" content="magicfile, diamond processing, diamond accounting, diamond management, local file sync, surat diamond software" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://magicfile.in/" />
+    
+    <!-- Open Graph Metadata -->
+    <meta property="og:title" content="MagicFile — Diamond Processing &amp; Accounting Management" />
+    <meta property="og:description" content="MagicFile is a premium high-tech diamond operations console and accounting management system for diamond manufacturers." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://magicfile.in/" />
+    
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <script>
-      window.onerror = function(message, source, lineno, colno, error) {
-        var div = document.createElement('div');
-        div.style.position = 'fixed';
-        div.style.top = '10px';
-        div.style.left = '10px';
-        div.style.right = '10px';
-        div.style.background = '#fee2e2';
-        div.style.color = '#991b1b';
-        div.style.border = '2px solid #ef4444';
-        div.style.padding = '20px';
-        div.style.zIndex = '999999';
-        div.style.fontFamily = 'monospace';
-        div.style.borderRadius = '8px';
-        div.style.whiteSpace = 'pre-wrap';
-        div.innerHTML = '<h3>🚨 Uncaught Javascript Error:</h3>' + 
-          '<p><strong>Message:</strong> ' + message + '</p>' +
-          '<p><strong>Source:</strong> ' + source + ':' + lineno + ':' + colno + '</p>' +
-          '<p><strong>Stack:</strong> ' + (error && error.stack ? error.stack : 'N/A') + '</p>';
-        document.body.appendChild(div);
-        return false;
-      };
-      window.addEventListener('unhandledrejection', function(event) {
-        var div = document.createElement('div');
-        div.style.position = 'fixed';
-        div.style.top = '10px';
-        div.style.left = '10px';
-        div.style.right = '10px';
-        div.style.background = '#fffbeb';
-        div.style.color = '#92400e';
-        div.style.border = '2px solid #f59e0b';
-        div.style.padding = '20px';
-        div.style.zIndex = '999999';
-        div.style.fontFamily = 'monospace';
-        div.style.borderRadius = '8px';
-        div.style.whiteSpace = 'pre-wrap';
-        div.innerHTML = '<h3>⚠️ Unhandled Promise Rejection:</h3>' + 
-          '<p><strong>Reason:</strong> ' + event.reason + '</p>';
-        document.body.appendChild(div);
-      });
-      
-      var originalConsoleError = console.error;
-      console.error = function() {
-        originalConsoleError.apply(console, arguments);
-        var message = Array.from(arguments).map(function(arg) {
-          if (arg && arg.stack) return arg.stack;
-          if (typeof arg === 'object') return JSON.stringify(arg);
-          return String(arg);
-        }).join(' ');
-        var div = document.createElement('div');
-        div.style.position = 'fixed';
-        div.style.bottom = '10px';
-        div.style.left = '10px';
-        div.style.right = '10px';
-        div.style.background = '#fff1f2';
-        div.style.color = '#be123c';
-        div.style.border = '2px solid #fb7185';
-        div.style.padding = '20px';
-        div.style.zIndex = '9999999';
-        div.style.fontFamily = 'monospace';
-        div.style.borderRadius = '8px';
-        div.style.whiteSpace = 'pre-wrap';
-        div.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
-        div.innerHTML = '<h3>🚨 Caught Console Error:</h3>' + 
-          '<p>' + message + '</p>';
-        document.body.appendChild(div);
-      };
-    </script>
     <link rel="icon" type="image/png" href="/favicon.png" />
   </head>
   <body>

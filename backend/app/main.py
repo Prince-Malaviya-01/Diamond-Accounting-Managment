@@ -65,6 +65,7 @@ def _seed_admin() -> None:
         if not existing:
             db.add(
                 User(
+                    id=9999,
                     company_name="System Admin",
                     username="admin",
                     password=hash_password("admin123"),

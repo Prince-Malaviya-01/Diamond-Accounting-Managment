@@ -24,3 +24,4 @@ backend/storage/logs/**
 # User WhatsApp Images & Prompts
 WhatsApp Image 2026-05-28 at *.jpeg
 Prompt/
+*.bak

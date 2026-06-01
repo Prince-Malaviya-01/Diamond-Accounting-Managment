@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { 
   Diamond, ArrowRight, ShieldCheck, FolderSync, Receipt, Settings, 
   Cpu, Database, Mail, Phone, MapPin, Activity, CheckCircle2, 
@@ -76,7 +76,7 @@ export default function IndexPage() {
 
       {/* ── HEADER ── */}
       <header className="shell-header responsive-landing-header anim-fade-in-down">
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => navigate("/")}>
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "inherit" }}>
           <div className="panel-icon primary" style={{ width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Diamond size={18} />
           </div>
@@ -90,17 +90,18 @@ export default function IndexPage() {
           }}>
             Diamond
           </span>
-        </div>
+        </Link>
 
         <div className="landing-header-buttons">
-          <button 
+          <Link 
+            to="/login/client"
             className="btn btn-outline" 
-            style={{ borderRadius: "var(--radius-sm)", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem" }}
-            onClick={() => navigate("/login/client")}
+            style={{ borderRadius: "var(--radius-sm)", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
           >
             Client Login
-          </button>
-          <button 
+          </Link>
+          <Link 
+            to="/login/admin"
             className="btn btn-primary" 
             style={{ 
               borderRadius: "var(--radius-sm)", 
@@ -108,12 +109,14 @@ export default function IndexPage() {
               fontWeight: 600, 
               fontSize: "0.85rem",
               background: "linear-gradient(135deg, var(--primary), var(--primary-light))",
-              boxShadow: "0 4px 14px rgba(99, 102, 241, 0.4)"
+              boxShadow: "0 4px 14px rgba(99, 102, 241, 0.4)",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center"
             }}
-            onClick={() => navigate("/login/admin")}
           >
             Admin Login
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -153,7 +156,8 @@ export default function IndexPage() {
         </p>
 
         <div className="landing-hero-ctas anim-fade-in-up delay-300">
-          <button 
+          <Link 
+            to="/login/client"
             className="btn btn-primary" 
             style={{ 
               padding: "14px 32px", 
@@ -161,19 +165,31 @@ export default function IndexPage() {
               fontWeight: 600,
               borderRadius: "var(--radius-sm)",
               background: "linear-gradient(135deg, var(--primary), var(--primary-light))",
-              boxShadow: "0 8px 24px rgba(99, 102, 241, 0.3)"
+              boxShadow: "0 8px 24px rgba(99, 102, 241, 0.3)",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center"
             }}
-            onClick={() => navigate("/login/client")}
           >
             Client Console <ArrowRight size={16} style={{ marginLeft: "6px" }} />
-          </button>
-          <button 
+          </Link>
+          <Link 
+            to="/login/admin"
             className="btn btn-outline" 
-            style={{ padding: "14px 32px", fontSize: "0.95rem", fontWeight: 600, borderRadius: "var(--radius-sm)" }}
-            onClick={() => navigate("/login/admin")}
+            style={{ 
+              padding: "14px 32px", 
+              fontSize: "0.95rem", 
+              fontWeight: 600, 
+              borderRadius: "var(--radius-sm)",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
           >
             Admin Control Center
-          </button>
+          </Link>
         </div>
 
         {/* ── STATS SECTION ── */}
@@ -320,7 +336,7 @@ export default function IndexPage() {
         <div className="landing-footer-grid">
           {/* Col 1: Logo & Tagline */}
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+            <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", textDecoration: "none", color: "inherit" }}>
               <div className="desktop-footer-logo-icon panel-icon primary" style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Diamond size={16} />
               </div>
@@ -334,7 +350,7 @@ export default function IndexPage() {
               }}>
                 Diamond
               </span>
-            </div>
+            </Link>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
               Leading high-fidelity operations and automated statement billing console designed specifically for diamond manufacturing firms.
             </p>
@@ -344,8 +360,8 @@ export default function IndexPage() {
           <div>
             <h4 style={{ fontSize: "0.9rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "16px" }}>System Portals</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.85rem" }}>
-              <span style={{ color: "var(--text-secondary)", cursor: "pointer", transition: "color 0.2s" }} onClick={() => navigate("/login/client")}>Client Portal Login</span>
-              <span style={{ color: "var(--text-secondary)", cursor: "pointer", transition: "color 0.2s" }} onClick={() => navigate("/login/admin")}>Admin Control Center</span>
+              <Link to="/login/client" style={{ color: "var(--text-secondary)", textDecoration: "none", transition: "color 0.2s" }}>Client Portal Login</Link>
+              <Link to="/login/admin" style={{ color: "var(--text-secondary)", textDecoration: "none", transition: "color 0.2s" }}>Admin Control Center</Link>
             </div>
           </div>
 
@@ -359,22 +375,14 @@ export default function IndexPage() {
             </div>
           </div>
 
-          {/* Col 4: Contact Info */}
+          {/* Col 4: Operating Hours */}
           <div>
-            <h4 style={{ fontSize: "0.9rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "16px" }}>Contact Details</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Mail size={14} className="text-primary" />
-                <span>rbsofttech17@gmail.com</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Phone size={14} className="text-primary" />
-                <span>+91 98765 43210</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <MapPin size={14} className="text-primary" />
-                <span>Surat, Gujarat, India</span>
-              </div>
+            <h4 style={{ fontSize: "0.9rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "16px" }}>Operating Hours</h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+              <span>Monday – Friday: <strong>9:00 AM – 6:00 PM</strong></span>
+              <span>Saturday: <strong>9:00 AM – 2:00 PM</strong></span>
+              <span>Sunday: <strong>Closed</strong></span>
+              <span>Timezone: <strong>India (GMT+5:30)</strong></span>
             </div>
           </div>
         </div>
