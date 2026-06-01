@@ -122,7 +122,7 @@ export default function IndexPage() {
 
       {/* ── HERO SECTION ── */}
       <section className="landing-hero-section">
-        <div className="anim-fade-in-up" style={{ 
+        <div style={{ 
           display: "inline-flex", 
           alignItems: "center", 
           gap: "8px", 
@@ -140,7 +140,7 @@ export default function IndexPage() {
           <Sparkles size={14} /> Premium High-Tech Diamond Operations Console
         </div>
 
-        <h1 className="landing-hero-title anim-fade-in-up delay-100">
+        <h1 className="landing-hero-title">
           Diamond Processing &amp;<br />
           <span style={{ 
             background: "linear-gradient(135deg, var(--primary-light), var(--accent))",
@@ -151,7 +151,7 @@ export default function IndexPage() {
           </span>
         </h1>
 
-        <p className="landing-hero-desc anim-fade-in-up delay-200">
+        <p className="landing-hero-desc">
           A state-of-the-art enterprise system built specifically for diamond manufacturers. Monitor files asynchronously, automate client billing, and silently synchronize backup folders straight to local disks.
         </p>
 
