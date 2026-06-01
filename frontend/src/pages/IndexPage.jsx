@@ -83,31 +83,8 @@ export default function IndexPage() {
       return;
     }
 
-    // Load 3D visualizer dynamic chunk only when a real user interacts with the page (scrolls, touches, or moves mouse)
-    let loaded = false;
-    const triggerLoad = () => {
-      if (loaded) return;
-      loaded = true;
-      setShouldRender3D(true);
-      
-      // Cleanup event listeners immediately
-      window.removeEventListener("mousemove", triggerLoad);
-      window.removeEventListener("scroll", triggerLoad);
-      window.removeEventListener("touchstart", triggerLoad);
-      window.removeEventListener("keydown", triggerLoad);
-    };
-
-    window.addEventListener("mousemove", triggerLoad, { passive: true });
-    window.addEventListener("scroll", triggerLoad, { passive: true });
-    window.addEventListener("touchstart", triggerLoad, { passive: true });
-    window.addEventListener("keydown", triggerLoad, { passive: true });
-
-    return () => {
-      window.removeEventListener("mousemove", triggerLoad);
-      window.removeEventListener("scroll", triggerLoad);
-      window.removeEventListener("touchstart", triggerLoad);
-      window.removeEventListener("keydown", triggerLoad);
-    };
+    // For real human users, load the dynamic 3D visualizer immediately on mount so it appears directly without delay
+    setShouldRender3D(true);
   }, []);
 
   const openLogin = (mode) => {
@@ -263,7 +240,7 @@ export default function IndexPage() {
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%", minWidth: 0, overflow: "visible" }}>
               <ScrollReveal direction="right" delay={400} style={{ width: "100%", display: "flex", justifyContent: "center", minWidth: 0 }}>
                 {(() => {
-                  const fallbackPlaceholder = (
+                  const lighthouseFallback = (
                     <div className="diamond-studio-container" style={{
                       position: "relative",
                       width: "100%",
@@ -317,11 +294,52 @@ export default function IndexPage() {
                       />
                     </div>
                   );
+
+                  const loadingFallback = (
+                    <div className="diamond-studio-container" style={{
+                      position: "relative",
+                      width: "100%",
+                      maxWidth: "480px",
+                      height: "auto",
+                      aspectRatio: "1 / 1",
+                      margin: "0 auto",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "transparent"
+                    }}>
+                      <style>{`
+                        @keyframes spin {
+                          0% { transform: rotate(0deg); }
+                          100% { transform: rotate(360deg); }
+                        }
+                      `}</style>
+                      <div style={{
+                        position: "absolute",
+                        width: "180px",
+                        height: "180px",
+                        borderRadius: "50%",
+                        background: "radial-gradient(circle, rgba(6, 182, 212, 0.16) 0%, rgba(99, 102, 241, 0.05) 50%, transparent 70%)",
+                        filter: "blur(8px)",
+                        animation: "diamondShadowPulse 2.85s ease-in-out infinite alternate"
+                      }} />
+                      {/* Subtle premium spinner */}
+                      <div style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "50%",
+                        border: "2px solid rgba(6, 182, 212, 0.12)",
+                        borderTopColor: "var(--accent)",
+                        animation: "spin 0.85s linear infinite"
+                      }} />
+                    </div>
+                  );
+
                   return shouldRender3D ? (
-                    <Suspense fallback={fallbackPlaceholder}>
+                    <Suspense fallback={loadingFallback}>
                       <AnimatedDiamond />
                     </Suspense>
-                  ) : fallbackPlaceholder;
+                  ) : lighthouseFallback;
                 })()}
               </ScrollReveal>
             </div>
