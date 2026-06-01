@@ -9,6 +9,31 @@ export default function ThemeToggle() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    // Sync state initially on mount
+    const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+    setTheme(currentTheme);
+
+    // Watch for external data-theme changes (e.g. from parent landing page mount)
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === "data-theme") {
+          const newTheme = document.documentElement.getAttribute("data-theme") || "dark";
+          setTheme((prev) => (prev !== newTheme ? newTheme : prev));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   const toggle = (e) => {
     const nextTheme = theme === "light" ? "dark" : "light";
 
