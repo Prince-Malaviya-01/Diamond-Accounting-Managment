@@ -19,8 +19,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("token");
-      if (!window.location.pathname.includes("/login") && !window.location.pathname.includes("/register")) {
-        window.location.href = "/login";
+      // Do not redirect if it's a login request, so error stays in the popup form
+      const isLoginRequest = error.config && error.config.url && error.config.url.includes("/auth/login");
+      if (!isLoginRequest && window.location.pathname !== "/") {
+        window.location.href = "/";
       }
     }
     return Promise.reject(error);

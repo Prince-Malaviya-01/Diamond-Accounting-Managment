@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import IndexPage from "./pages/IndexPage";
-import LoginPage from "./pages/LoginPage";
 
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const UserDashboardPage = lazy(() => import("./pages/UserDashboardPage"));
@@ -11,8 +10,8 @@ function RequireAuth({ children, adminOnly = false }) {
   const isAdmin = localStorage.getItem("is_admin") === "true";
 
   if (!token) {
-    // If not authenticated, redirect to the client login by default
-    return <Navigate to="/login/client" replace />;
+    // If not authenticated, redirect to the home page where the login modal resides
+    return <Navigate to="/" replace />;
   }
   if (adminOnly && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
@@ -33,12 +32,6 @@ export default function App() {
         <Route path="/" element={<IndexPage />} />
         <Route path="/index" element={<IndexPage />} />
 
-        {/* Separated Secure Logins */}
-        <Route path="/login/client" element={<LoginPage mode="client" />} />
-        <Route path="/login/admin" element={<LoginPage mode="admin" />} />
-        
-        {/* Fallbacks */}
-        <Route path="/login" element={<Navigate to="/login/client" replace />} />
 
         {/* Protected Portals */}
         <Route
