@@ -10,9 +10,11 @@ export default function ThemeToggle() {
   }, [theme]);
 
   const toggle = (e) => {
+    const nextTheme = theme === "light" ? "dark" : "light";
+
     // Fallback if browser doesn't support View Transition API
     if (!document.startViewTransition) {
-      setTheme(prev => (prev === "light" ? "dark" : "light"));
+      setTheme(nextTheme);
       return;
     }
 
@@ -26,7 +28,9 @@ export default function ThemeToggle() {
     document.documentElement.classList.add("theme-transition");
 
     const transition = document.startViewTransition(() => {
-      setTheme(prev => (prev === "light" ? "dark" : "light"));
+      setTheme(nextTheme);
+      document.documentElement.setAttribute("data-theme", nextTheme);
+      localStorage.setItem("theme", nextTheme);
     });
 
     transition.ready.then(() => {
