@@ -1686,7 +1686,7 @@ export default function AdminDashboardPage() {
                   </thead>
                   <tbody>
                     {users.map(u => {
-                      const userJobs = jobs.filter(j => j.user === u.username);
+                      const userJobs = jobs.filter(j => j.user === u.company_name);
                       const userCompleted = userJobs.filter(j => j.status === "Completed").length;
                       return (
                         <tr key={u.id}>
