@@ -21,7 +21,7 @@ def save_config(config):
 
 def login(server_url, username, password):
     url = f"{server_url.rstrip('/')}/auth/login"
-    payload = {"username": username, "password": password}
+    payload = {"username": username, "password": password, "is_admin_login": True}
     try:
         response = requests.post(url, json=payload, timeout=10)
         if response.status_code == 200:

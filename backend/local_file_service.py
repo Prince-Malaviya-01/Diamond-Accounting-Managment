@@ -87,7 +87,7 @@ def ensure_online_folder():
 
 def sync_login(server_url, username, password):
     url = f"{server_url.rstrip('/')}/auth/login"
-    payload = {"username": username, "password": password}
+    payload = {"username": username, "password": password, "is_admin_login": True}
     try:
         response = requests.post(url, json=payload, timeout=10)
         if response.status_code == 200:
@@ -225,7 +225,7 @@ def startup():
         config = load_config()
         backup_root = Path(config.get("backup_root", str(DEFAULT_BACKUP_ROOT)))
         backup_root.mkdir(parents=True, exist_ok=True)
-        print(f"✓ Backup folder ready: {backup_root}")
+        print(f"[OK] Backup folder ready: {backup_root}")
     except Exception as e:
         print(f"Error creating backup folder: {e}")
         
@@ -286,6 +286,8 @@ def get_backup_status():
         "status_log": sync_status_log,
         "last_sync_time": last_sync_time,
         "configured": configured,
+        "server_url": config.get("server_url", ""),
+        "username": config.get("username", ""),
         "local_files": results
     }
 
@@ -429,11 +431,11 @@ def open_folder():
 if __name__ == "__main__":
     import uvicorn
     print("\n" + "="*50)
-    print("💎 DIAMOND LOCAL SERVICE & SYNC MONITOR STARTED 💎")
+    print("--- DIAMOND LOCAL SERVICE & SYNC MONITOR STARTED ---")
     print("="*50)
-    print(f"✓ Running on http://localhost:3001")
-    print(f"✓ Client Uploads Sync Location: D:\\Diamond_Backup_Files\\")
-    print(f"✓ Local Sync Engine active and listening in background...")
+    print(f"[OK] Running on http://localhost:3001")
+    print(f"[OK] Client Uploads Sync Location: D:\\Diamond_Backup_Files\\")
+    print(f"[OK] Local Sync Engine active and listening in background...")
     print("="*50 + "\n")
     
     uvicorn.run(app, host="localhost", port=3001)

@@ -215,6 +215,7 @@ export default function AdminDashboardPage() {
   const [localAdminUsername, setLocalAdminUsername] = useState("admin");
   const [localAdminPassword, setLocalAdminPassword] = useState("");
   const [savingLocalConfig, setSavingLocalConfig] = useState(false);
+  const [editLocalConfig, setEditLocalConfig] = useState(false);
   
   const [backupCompanyFilter, setBackupCompanyFilter] = useState("all");
   const [backupDateFilter, setBackupDateFilter] = useState("");
@@ -280,6 +281,7 @@ export default function AdminDashboardPage() {
       });
       if (res.ok) {
         showMsg("✓ Connected successfully and started sync!");
+        setEditLocalConfig(false);
         await loadLocalBackupStatus();
       } else {
         const err = await res.json();
@@ -3082,11 +3084,13 @@ export default function AdminDashboardPage() {
                     <RefreshCw size={16} /> Recheck Connection
                   </button>
                 </div>
-              ) : !localBackupData?.configured ? (
+              ) : (!localBackupData?.configured || editLocalConfig) ? (
                 <div style={{ padding: "10px 0" }}>
                   <div style={{ color: "var(--warning)", background: "var(--warning-bg)", border: "1px solid var(--warning-light)", padding: "16px", borderRadius: "8px", display: "flex", gap: "12px", alignItems: "center", marginBottom: "20px" }}>
                     <AlertCircle size={20} />
-                    <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>Backup sync is not configured yet. Please link your local backup script to the server by entering the details below:</span>
+                    <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>
+                      {editLocalConfig ? "Edit local backup configuration settings below:" : "Backup sync is not configured yet. Please link your local backup script to the server by entering the details below:"}
+                    </span>
                   </div>
                   
                   <form onSubmit={handleSaveLocalConfig} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px", alignItems: "flex-end" }}>
@@ -3120,15 +3124,27 @@ export default function AdminDashboardPage() {
                         style={{ marginBottom: 0 }}
                       />
                     </div>
-                    <button 
-                      type="submit" 
-                      className="btn-primary" 
-                      disabled={savingLocalConfig} 
-                      style={{ height: "38px", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
-                    >
-                      {savingLocalConfig ? <Loader2 size={16} className="spin" /> : <Check size={16} />}
-                      Save & Connect
-                    </button>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      {localBackupData?.configured && (
+                        <button 
+                          type="button" 
+                          className="btn-secondary" 
+                          onClick={() => setEditLocalConfig(false)}
+                          style={{ height: "38px", display: "flex", justifyContent: "center", alignItems: "center" }}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button 
+                        type="submit" 
+                        className="btn-primary" 
+                        disabled={savingLocalConfig} 
+                        style={{ height: "38px", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", flex: 1 }}
+                      >
+                        {savingLocalConfig ? <Loader2 size={16} className="spin" /> : <Check size={16} />}
+                        Save & Connect
+                      </button>
+                    </div>
                   </form>
                 </div>
               ) : (
@@ -3138,15 +3154,28 @@ export default function AdminDashboardPage() {
                       <div>💾 <strong>Backup Directory:</strong> <code style={{ background: "var(--border-light)", padding: "2px 6px", borderRadius: "4px" }}>{localBackupData?.backup_root || "D:\\Diamond_Backup_Files"}</code></div>
                       <div style={{ marginTop: "6px" }}>🔄 <strong>Last Sync Status:</strong> <span style={{ color: "var(--primary)", fontWeight: 600 }}>{localBackupData?.status_log || "Checking..."}</span></div>
                     </div>
-                    <button 
-                      className="btn-primary" 
-                      onClick={handleTriggerLocalSync} 
-                      disabled={syncingBackup}
-                      style={{ height: "40px", display: "flex", alignItems: "center", gap: "8px" }}
-                    >
-                      {syncingBackup ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />}
-                      {syncingBackup ? "Synchronizing..." : "Sync & Refresh Ticks"}
-                    </button>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <button 
+                        className="btn-secondary" 
+                        onClick={() => {
+                          setLocalAdminPassword("");
+                          setEditLocalConfig(true);
+                        }}
+                        style={{ height: "40px", display: "flex", alignItems: "center", gap: "8px" }}
+                      >
+                        <Edit size={16} />
+                        Configure Server
+                      </button>
+                      <button 
+                        className="btn-primary" 
+                        onClick={handleTriggerLocalSync} 
+                        disabled={syncingBackup}
+                        style={{ height: "40px", display: "flex", alignItems: "center", gap: "8px" }}
+                      >
+                        {syncingBackup ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />}
+                        {syncingBackup ? "Synchronizing..." : "Sync & Refresh Ticks"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
