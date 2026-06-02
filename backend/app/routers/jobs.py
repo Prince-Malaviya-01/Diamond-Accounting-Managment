@@ -89,7 +89,7 @@ def upload_multiple_jobs(
 
 @router.get("/list", response_model=list[JobListItem])
 def list_jobs(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    jobs = db.query(Job).filter(Job.user_id == user.id).order_by(Job.created_at.desc()).all()
+    jobs = db.query(Job).filter(Job.user_id == user.id).order_by(Job.created_at.asc()).all()
     return jobs
 
 

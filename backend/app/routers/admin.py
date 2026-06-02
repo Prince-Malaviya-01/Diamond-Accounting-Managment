@@ -40,7 +40,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.get("/jobs")
 def all_jobs(admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
     _ = admin
-    jobs = db.query(Job).order_by(Job.created_at.desc()).all()
+    jobs = db.query(Job).order_by(Job.created_at.asc()).all()
     users = {u.id: u for u in db.query(User).all()}
     return [
         {
