@@ -78,6 +78,7 @@ export default function UserDashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem("clientActiveTab") || "stones"); // stones | report | billing | pay_pending
   const fileInputRef = useRef(null);
   const msgTimer = useRef(null);
@@ -290,20 +291,49 @@ export default function UserDashboardPage() {
     e?.preventDefault();
     if (!form.files.length) { showMsg("Please select files to upload"); return; }
     setUploading(true);
+    
+    const filesToUpload = [...form.files];
+    const totalFiles = filesToUpload.length;
+    setUploadProgress({ current: 1, total: totalFiles, percent: 0, filename: filesToUpload[0].name });
+    
+    let createdCount = 0;
+    let replacedCount = 0;
+    let skippedCount = 0;
+    let invalidCount = 0;
+    
     try {
-      const fd = new FormData();
-      form.files.forEach((f) => fd.append("files", f));
-      const { data } = await api.post("/jobs/upload-multiple", fd);
+      for (let i = 0; i < totalFiles; i++) {
+        const file = filesToUpload[i];
+        setUploadProgress({ current: i + 1, total: totalFiles, percent: 0, filename: file.name });
+        
+        const fd = new FormData();
+        fd.append("files", file);
+        
+        const { data } = await api.post("/jobs/upload-multiple", fd, {
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress({ current: i + 1, total: totalFiles, percent: percentCompleted, filename: file.name });
+          }
+        });
+        
+        createdCount += data.created || 0;
+        replacedCount += data.replaced || 0;
+        skippedCount += (data.skipped_in_processing?.length || 0) + (data.skipped_duplicates?.length || 0);
+        invalidCount += data.invalid_files?.length || 0;
+      }
+      
       showMsg(
-        `Upload: ${data.created} created, ${data.replaced ?? 0} replaced, ${data.skipped_in_processing?.length ?? 0} skipped, ${data.invalid_files.length} invalid`
+        `Upload Complete: ${createdCount} created, ${replacedCount} replaced, ${skippedCount} skipped, ${invalidCount} invalid`
       );
       setForm({ files: [] });
       setFileInputKey((p) => p + 1);
       loadData();
     } catch (err) {
-      showMsg(err.response?.data?.detail || "Upload failed");
+      showMsg(err.response?.data?.detail || "Upload failed during batch process");
+      loadData();
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -557,12 +587,29 @@ export default function UserDashboardPage() {
             style={{ display: "none" }}
             onChange={(e) => handleFiles(e.target.files)}
           />
-          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+          <div style={{ marginTop: 12, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
             <button type="submit" className="btn-primary" disabled={uploading || !form.files.length}>
-              <Upload size={16} />
-              {uploading ? "Uploading..." : "Upload Files"}
+              {uploading ? <Loader2 size={16} className="spin" /> : <Upload size={16} />}
+              {uploading 
+                ? (uploadProgress 
+                    ? `Uploading ${uploadProgress.current}/${uploadProgress.total}` 
+                    : "Uploading...") 
+                : "Upload Files"}
             </button>
-            {form.files.length > 0 && (
+            {uploading && uploadProgress && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, minWidth: "200px", maxWidth: "300px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                  <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "180px" }} title={uploadProgress.filename}>
+                    File: {uploadProgress.filename}
+                  </span>
+                  <span>{uploadProgress.percent || 0}%</span>
+                </div>
+                <div style={{ width: "100%", height: "6px", background: "var(--border-light)", borderRadius: "3px", overflow: "hidden" }}>
+                  <div style={{ width: `${uploadProgress.percent || 0}%`, height: "100%", background: "var(--primary)", transition: "width 0.1s ease" }}></div>
+                </div>
+              </div>
+            )}
+            {!uploading && form.files.length > 0 && (
               <button type="button" className="btn-ghost" onClick={() => { setForm({ files: [] }); setFileInputKey(p => p + 1); }}>
                 Clear
               </button>
