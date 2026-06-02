@@ -451,7 +451,7 @@ export default function AdminDashboardPage() {
   }, [logFilter]);
 
   useEffect(() => {
-    if (activeTab === "logs") {
+    if (activeTab === "logs" || activeTab === "analytics") {
       loadLogs();
     }
   }, [activeTab, loadLogs]);
