@@ -10,7 +10,7 @@ import {
   Download, Play, Upload, AlertCircle, RefreshCw,
   Gem, BarChart3, Receipt, Trash2, Filter, Eye, EyeOff,
   Calendar, IndianRupee, FileSpreadsheet, TrendingUp, Weight,
-  User as UserIcon, UserPlus, Plus, Check, Database,
+  User as UserIcon, UserPlus, Plus, Check, Database, Edit,
 } from "lucide-react";
 import api, { billingApi } from "../api";
 import LogoutButton from "../components/LogoutButton";
@@ -143,6 +143,50 @@ export default function AdminDashboardPage() {
   const [submittingProfit, setSubmittingProfit] = useState(false);
   const [accProfitMonth, setAccProfitMonth] = useState("all");
   const [accProfitYear, setAccProfitYear] = useState("all");
+  const [accProfitClient, setAccProfitClient] = useState("all");
+  const [showEditProfitModal, setShowEditProfitModal] = useState(false);
+  const [editProfitForm, setEditProfitForm] = useState({
+    id: null,
+    company: "",
+    amount: "",
+    payment_mode: "Cash",
+    remarks: ""
+  });
+  const [editingProfitLoading, setEditingProfitLoading] = useState(false);
+
+  const handleOpenEditProfitModal = (p) => {
+    setEditProfitForm({
+      id: p.id,
+      company: p.company,
+      amount: String(p.amount),
+      payment_mode: p.payment_mode || "Cash",
+      remarks: p.remarks || ""
+    });
+    setShowEditProfitModal(true);
+  };
+
+  const handleSaveEditProfit = async (e) => {
+    e.preventDefault();
+    if (!editProfitForm.amount) {
+      showMsg("Please enter amount");
+      return;
+    }
+    setEditingProfitLoading(true);
+    try {
+      await api.post(`/admin/update-profit/${editProfitForm.id}`, {
+        amount: parseFloat(editProfitForm.amount),
+        payment_mode: editProfitForm.payment_mode,
+        remarks: editProfitForm.remarks
+      });
+      showMsg("Profit entry updated successfully");
+      setShowEditProfitModal(false);
+      await Promise.all([loadProfits(), load()]);
+    } catch {
+      showMsg("Failed to update profit entry");
+    } finally {
+      setEditingProfitLoading(false);
+    }
+  };
 
   // Backup & Restore state
   const [backupFile, setBackupFile] = useState(null);
@@ -314,8 +358,12 @@ export default function AdminDashboardPage() {
       }
     });
 
-    return Object.values(userStats).sort((a, b) => b.revenue - a.revenue);
-  }, [jobs, users, accProfitMonth, accProfitYear, getCalculatedRate]);
+    let data = Object.values(userStats);
+    if (accProfitClient !== "all") {
+      data = data.filter(a => a.user_id === Number(accProfitClient));
+    }
+    return data.sort((a, b) => b.revenue - a.revenue);
+  }, [jobs, users, accProfitMonth, accProfitYear, accProfitClient, getCalculatedRate]);
 
   const filteredReceivedTotals = useMemo(() => {
     const totals = {};
@@ -328,11 +376,27 @@ export default function AdminDashboardPage() {
       const yearMatch = accProfitYear === "all" || y === Number(accProfitYear);
 
       if (monthMatch && yearMatch) {
-        totals[p.user_id] = (totals[p.user_id] || 0) + p.amount;
+        if (accProfitClient === "all" || p.user_id === Number(accProfitClient)) {
+          totals[p.user_id] = (totals[p.user_id] || 0) + p.amount;
+        }
       }
     });
     return totals;
-  }, [recordedProfits, accProfitMonth, accProfitYear]);
+  }, [recordedProfits, accProfitMonth, accProfitYear, accProfitClient]);
+
+  const filteredRecordedProfits = useMemo(() => {
+    return recordedProfits.filter(p => {
+      const date = new Date(p.created_at);
+      const m = date.getMonth() + 1;
+      const y = date.getFullYear();
+
+      const monthMatch = accProfitMonth === "all" || m === Number(accProfitMonth);
+      const yearMatch = accProfitYear === "all" || y === Number(accProfitYear);
+      const clientMatch = accProfitClient === "all" || p.user_id === Number(accProfitClient);
+
+      return monthMatch && yearMatch && clientMatch;
+    });
+  }, [recordedProfits, accProfitMonth, accProfitYear, accProfitClient]);
 
   const accProfitTotals = useMemo(() => {
     const revenue = filteredAccountData.reduce((s, i) => s + i.revenue, 0);
@@ -2138,7 +2202,7 @@ export default function AdminDashboardPage() {
                     </button>
                   </div>
 
-                  <div className="account-grid">
+                  <div className="account-grid admin-account-grid">
                     <div className="account-item">
                       <div className="account-icon blue"><Gem size={16} /></div>
                       <div>
@@ -2151,6 +2215,13 @@ export default function AdminDashboardPage() {
                       <div>
                         <span className="account-label">Username</span>
                         <span className="account-value">@{userAccount.username}</span>
+                      </div>
+                    </div>
+                    <div className="account-item">
+                      <div className="account-icon orange"><Clock size={16} /></div>
+                      <div>
+                        <span className="account-label">Active Stones</span>
+                        <span className="account-value">{userAccount.active_stones}</span>
                       </div>
                     </div>
 
@@ -2173,13 +2244,6 @@ export default function AdminDashboardPage() {
                       <div>
                         <span className="account-label">Total Revenue</span>
                         <span className="account-value">₹{Number(userAccount.total_revenue).toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <div className="account-item">
-                      <div className="account-icon orange"><Clock size={16} /></div>
-                      <div>
-                        <span className="account-label">Active Stones</span>
-                        <span className="account-value">{userAccount.active_stones}</span>
                       </div>
                     </div>
                   </div>
@@ -2407,7 +2471,7 @@ export default function AdminDashboardPage() {
             {/* Filter Bar */}
             <div className="panel" style={{ marginBottom: "20px" }}>
               <div className="accounts-profit-filter-row" style={{ display: "flex", gap: 15, alignItems: "center", flexWrap: "wrap" }}>
-                <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "340px" }}>
+                <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "520px" }}>
                   <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
                     <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
                       <Calendar size={14} /> Month
@@ -2436,11 +2500,25 @@ export default function AdminDashboardPage() {
                       style={{ width: "100%" }}
                     />
                   </div>
+                  <div className="filter-group" style={{ marginBottom: 0, flex: 1.2 }}>
+                    <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                      <UserIcon size={14} /> Client
+                    </label>
+                    <CustomSelect
+                      options={[
+                        { label: "All Clients", value: "all" },
+                        ...nonAdminUsers.map(u => ({ label: u.company_name, value: String(u.id) }))
+                      ]}
+                      value={accProfitClient}
+                      onChange={setAccProfitClient}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
                 </div>
                 <button 
-                  className={`btn profit-show-all-btn ${accProfitMonth === "all" && accProfitYear === "all" ? "btn-primary" : "btn-outline"}`}
+                  className={`btn profit-show-all-btn ${accProfitMonth === "all" && accProfitYear === "all" && accProfitClient === "all" ? "btn-primary" : "btn-outline"}`}
                   style={{ alignSelf: "flex-end", height: 38 }}
-                  onClick={() => { setAccProfitMonth("all"); setAccProfitYear("all"); }}
+                  onClick={() => { setAccProfitMonth("all"); setAccProfitYear("all"); setAccProfitClient("all"); }}
                 >
                   Show All (Lifetime)
                 </button>
@@ -2637,14 +2715,14 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Recent Recorded Profits */}
+             {/* Recent Recorded Profits */}
             <div className="panel" style={{ marginTop: "20px" }}>
               <div className="panel-header">
                 <div className="panel-title">
                   <div className="panel-icon orange"><Clock size={18} /></div>
                   <h3>Recent Recorded Entries</h3>
                 </div>
-                <span className="panel-badge orange">{recordedProfits.length}</span>
+                <span className="panel-badge orange">{filteredRecordedProfits.length}</span>
               </div>
               <div className="table-container">
                 <table>
@@ -2655,10 +2733,11 @@ export default function AdminDashboardPage() {
                       <th>Mode</th>
                       <th>Date</th>
                       <th>Remarks</th>
+                      <th style={{ textAlign: "center", width: "80px" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {recordedProfits.map((p) => (
+                    {filteredRecordedProfits.map((p) => (
                       <tr key={p.id}>
                         <td><strong>{p.company}</strong></td>
                         <td style={{ fontWeight: 600, color: "var(--success)" }}>₹{p.amount.toFixed(2)}</td>
@@ -2669,10 +2748,19 @@ export default function AdminDashboardPage() {
                         </td>
                         <td>{new Date(p.created_at).toLocaleString()}</td>
                         <td>{p.remarks}</td>
+                        <td style={{ textAlign: "center" }}>
+                          <button 
+                            className="btn-icon blue" 
+                            title="Edit Entry"
+                            onClick={() => handleOpenEditProfitModal(p)}
+                          >
+                            <Edit size={14} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
-                    {!recordedProfits.length && (
-                      <tr><td colSpan={4}><div className="empty-state"><Clock size={28} /><p>No entries recorded yet</p></div></td></tr>
+                    {!filteredRecordedProfits.length && (
+                      <tr><td colSpan={6}><div className="empty-state"><Clock size={28} /><p>No entries recorded yet</p></div></td></tr>
                     )}
                   </tbody>
                 </table>
@@ -3511,7 +3599,7 @@ export default function AdminDashboardPage() {
       {/* ── Add Client Modal ── */}
       {showAddClientModal && (
         <div className="modal-overlay">
-          <div className="modal light-modal" style={{ maxWidth: 460 }}>
+          <div className="modal" style={{ maxWidth: 460 }}>
             <div className="modal-header">
               <div className="panel-title">
                 <UserPlus size={20} className="text-primary" />
@@ -3624,6 +3712,84 @@ export default function AdminDashboardPage() {
                 >
                   {registerLoading ? <Loader2 className="spin" size={16} /> : <UserPlus size={16} />}
                   {registerLoading ? "Saving..." : "Add Client"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Profit Entry Modal ── */}
+      {showEditProfitModal && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <div className="panel-title">
+                <Edit size={20} className="text-primary" />
+                <h3>Edit Recorded Entry</h3>
+              </div>
+              <button onClick={() => setShowEditProfitModal(false)} className="btn-icon">
+                <XCircle size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveEditProfit}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Client</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={editProfitForm.company}
+                    style={{ opacity: 0.7, cursor: "not-allowed" }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Amount (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="Enter amount"
+                    value={editProfitForm.amount}
+                    onChange={(e) => setEditProfitForm({ ...editProfitForm, amount: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Payment Mode</label>
+                  <CustomSelect
+                    options={[
+                      { label: "Cash", value: "Cash" },
+                      { label: "UPI", value: "UPI" },
+                      { label: "Cheque", value: "Cheque" },
+                    ]}
+                    value={editProfitForm.payment_mode}
+                    onChange={(val) => setEditProfitForm({ ...editProfitForm, payment_mode: val })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Remarks</label>
+                  <input
+                    type="text"
+                    placeholder="Enter remarks"
+                    value={editProfitForm.remarks}
+                    onChange={(e) => setEditProfitForm({ ...editProfitForm, remarks: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" onClick={() => setShowEditProfitModal(false)} className="btn-outline">Cancel</button>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  disabled={editingProfitLoading}
+                >
+                  {editingProfitLoading ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+                  {editingProfitLoading ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

@@ -23,7 +23,7 @@ from app.models.invoice import Invoice
 from app.models.price_config import PriceConfig
 from app.models.account_profit import AccountProfit
 from app.models.download_token import DownloadToken
-from app.schemas import DashboardStats, SetPriorityRequest, PriceConfigUpdate, UpdateWeightRequest, ApplyRetroactivePricingRequest, AccountProfitCreate
+from app.schemas import DashboardStats, SetPriorityRequest, PriceConfigUpdate, UpdateWeightRequest, ApplyRetroactivePricingRequest, AccountProfitCreate, AccountProfitUpdate
 from app.services.drive_sync_service import get_drive_sync_status
 from app.services.log_service import log_activity
 from app.services.storage_service import (
@@ -579,6 +579,33 @@ def record_profit(payload: AccountProfitCreate, admin: User = Depends(get_curren
     company = user.company_name if user else "Unknown"
     log_activity(db, "admin_record_profit", f"Admin {admin.username} recorded profit of ₹{payload.amount} for {company}", admin.id)
     return {"message": "Profit recorded successfully"}
+
+
+@router.post("/update-profit/{profit_id}")
+def update_profit(profit_id: int, payload: AccountProfitUpdate, admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
+    profit = db.query(AccountProfit).filter(AccountProfit.id == profit_id).first()
+    if not profit:
+        raise HTTPException(status_code=404, detail="Recorded entry not found")
+    
+    old_amount = profit.amount
+    old_mode = profit.payment_mode
+    old_remarks = profit.remarks
+    
+    profit.amount = payload.amount
+    profit.payment_mode = payload.payment_mode
+    profit.remarks = payload.remarks
+    db.commit()
+    
+    user = db.query(User).filter(User.id == profit.user_id).first()
+    company = user.company_name if user else "Unknown"
+    log_activity(
+        db, 
+        "admin_update_profit", 
+        f"Admin {admin.username} updated profit entry #{profit_id} for {company}: "
+        f"Amount ₹{old_amount}->₹{payload.amount}, Mode {old_mode}->{payload.payment_mode}, Remarks '{old_remarks}'->'{payload.remarks}'", 
+        admin.id
+    )
+    return {"message": "Profit entry updated successfully"}
 
 
 @router.get("/profits")

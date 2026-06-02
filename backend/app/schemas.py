@@ -132,3 +132,9 @@ class AccountProfitCreate(BaseModel):
     amount: float
     payment_mode: Optional[str] = "Cash"
     remarks: Optional[str] = None
+
+
+class AccountProfitUpdate(BaseModel):
+    amount: float
+    payment_mode: Optional[str] = "Cash"
+    remarks: Optional[str] = None
