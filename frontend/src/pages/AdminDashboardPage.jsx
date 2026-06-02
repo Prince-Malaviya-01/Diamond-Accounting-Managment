@@ -83,6 +83,8 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem("adminActiveTab") || "queue");
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [bulkCompleting, setBulkCompleting] = useState(false);
+  const [bulkCompleteProgress, setBulkCompleteProgress] = useState(null);
   const msgTimer = useRef(null);
 
   // Billing state
@@ -732,13 +734,20 @@ export default function AdminDashboardPage() {
     }
     
     setLoading(true);
+    setBulkCompleting(true);
+    const totalFiles = files.length;
+    setBulkCompleteProgress({ current: 1, total: totalFiles, percent: 0, filename: files[0].name });
+    
     let successCount = 0;
     let skippedCount = 0;
     let failedCount = 0;
     
     try {
       // Loop through all uploaded result files
-      for (const file of files) {
+      for (let i = 0; i < totalFiles; i++) {
+        const file = files[i];
+        setBulkCompleteProgress({ current: i + 1, total: totalFiles, percent: 0, filename: file.name });
+        
         const filename = file.name;
         // Extract stone ID stem (e.g. "STONE123.adv" -> "stone123")
         const dotIdx = filename.lastIndexOf('.');
@@ -752,7 +761,12 @@ export default function AdminDashboardPage() {
           fd.append("job_id", matchingJob.id);
           fd.append("file", file);
           try {
-            await api.post("/admin/upload-result", fd);
+            await api.post("/admin/upload-result", fd, {
+              onUploadProgress: (progressEvent) => {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                setBulkCompleteProgress({ current: i + 1, total: totalFiles, percent: percentCompleted, filename: file.name });
+              }
+            });
             successCount++;
           } catch (err) {
             failedCount++;
@@ -769,6 +783,8 @@ export default function AdminDashboardPage() {
       showMsg("Bulk complete failed");
     } finally {
       setLoading(false);
+      setBulkCompleting(false);
+      setBulkCompleteProgress(null);
       e.target.value = "";
     }
   };
@@ -1422,25 +1438,65 @@ export default function AdminDashboardPage() {
                 <div className="panel-icon blue"><Package size={18} /></div>
                 <h3>Job Queue</h3>
               </div>
-              <div className="btn-group">
+              <div className="btn-group" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 {selectedJobs.length > 0 && (
                   <>
                     <span className="muted" style={{ marginRight: 10 }}>{selectedJobs.length} selected</span>
-                    <button className="btn-success btn-sm" onClick={() => handleBulkAction("Process")}>
-                      <Play size={14} /> Bulk Process
-                    </button>
-                    <label className="btn-primary btn-sm" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", margin: 0, padding: "6px 12px", borderRadius: "6px", fontSize: "0.82rem" }} title="Bulk Complete">
-                      <Upload size={14} /> Bulk Complete
-                      <input 
-                        type="file" 
-                        multiple 
-                        style={{ display: "none" }} 
-                        onChange={handleBulkCompleteUpload} 
-                      />
+                    {!bulkCompleting && (
+                      <button className="btn-success btn-sm" onClick={() => handleBulkAction("Process")} disabled={loading}>
+                        <Play size={14} /> Bulk Process
+                      </button>
+                    )}
+                    <label 
+                      className={`btn-primary btn-sm ${bulkCompleting ? "disabled" : ""}`} 
+                      style={{ 
+                        cursor: bulkCompleting ? "not-allowed" : "pointer", 
+                        display: "inline-flex", 
+                        alignItems: "center", 
+                        gap: "6px", 
+                        margin: 0, 
+                        padding: "6px 12px", 
+                        borderRadius: "6px", 
+                        fontSize: "0.82rem",
+                        opacity: bulkCompleting ? 0.6 : 1
+                      }} 
+                      title="Bulk Complete"
+                    >
+                      {bulkCompleting ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+                      {bulkCompleting 
+                        ? (bulkCompleteProgress 
+                            ? `Uploading ${bulkCompleteProgress.current}/${bulkCompleteProgress.total}` 
+                            : "Completing...")
+                        : "Bulk Complete"}
+                      {!bulkCompleting && (
+                        <input 
+                          type="file" 
+                          multiple 
+                          style={{ display: "none" }} 
+                          onChange={handleBulkCompleteUpload} 
+                          disabled={loading}
+                        />
+                      )}
                     </label>
-                    <button className="btn-danger btn-sm" onClick={() => handleBulkAction("Delete")}>
-                      <Trash2 size={14} /> Bulk Delete
-                    </button>
+                    {!bulkCompleting && (
+                      <button className="btn-danger btn-sm" onClick={() => handleBulkAction("Delete")} disabled={loading}>
+                        <Trash2 size={14} /> Bulk Delete
+                      </button>
+                    )}
+                    
+                    {bulkCompleting && bulkCompleteProgress && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: "200px", maxWidth: "300px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                          <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "180px" }} title={bulkCompleteProgress.filename}>
+                            File: {bulkCompleteProgress.filename}
+                          </span>
+                          <span>{bulkCompleteProgress.percent || 0}%</span>
+                        </div>
+                        <div style={{ width: "100%", height: "6px", background: "var(--border-light)", borderRadius: "3px", overflow: "hidden" }}>
+                          <div style={{ width: `${bulkCompleteProgress.percent || 0}%`, height: "100%", background: "var(--primary)", transition: "width 0.1s ease" }}></div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
                 <span className="panel-badge blue">{filteredJobs.length} / {jobs.length}</span>
