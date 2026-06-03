@@ -36,6 +36,22 @@ const SelectionBox = ({ checked, onChange }) => (
 
 const MONTHS = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+const isWeightInRange = (weight, rangeStr) => {
+  const clean = rangeStr.toUpperCase().replace(/\s+/g, '');
+  if (clean.includes("TO")) {
+    const parts = clean.split("TO");
+    const min = parseFloat(parts[0].replace(/[^0-9.]/g, ''));
+    const max = parseFloat(parts[1].replace(/[^0-9.]/g, ''));
+    const w = Math.round(Number(weight) * 100) / 100;
+    return min <= w && w <= max;
+  } else if (clean.includes("UP")) {
+    const min = parseFloat(clean.replace("UP", "").replace(/[^0-9.]/g, ''));
+    const w = Math.round(Number(weight) * 100) / 100;
+    return w >= min;
+  }
+  return false;
+};
+
 const HorizontalScrollContainer = ({ children, style, className }) => {
   const ref = useRef(null);
   useEffect(() => {
@@ -70,6 +86,8 @@ export default function UserDashboardPage() {
   const [summary, setSummary] = useState(null);
   const [billing, setBilling] = useState([]);
   const [stoneReport, setStoneReport] = useState([]);
+  const [reportRanges, setReportRanges] = useState([]);
+  const [selectedRange, setSelectedRange] = useState("choose");
   const [form, setForm] = useState({ files: [] });
   const [fileInputKey, setFileInputKey] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -147,12 +165,25 @@ export default function UserDashboardPage() {
     setLoading(false);
   }, []);
 
-  const loadStoneReport = useCallback(async () => {
+  const loadStoneReportAndRanges = useCallback(async () => {
+    if (!profile) return;
     try {
-      const res = await billingApi.getStoneReport(reportYear, reportMonth);
-      setStoneReport(res.data);
-    } catch { setStoneReport([]); }
-  }, [reportYear, reportMonth]);
+      setLoading(true);
+      const [reportRes, rangesRes] = await Promise.all([
+        billingApi.getStoneReport(reportYear, reportMonth),
+        api.get(`/billing/weight-ranges/${profile.id}`, { params: { year: reportYear, month: reportMonth } })
+      ]);
+      setStoneReport(reportRes.data);
+      setReportRanges(rangesRes.data);
+      setSelectedRange("choose");
+    } catch {
+      setStoneReport([]);
+      setReportRanges([]);
+      setSelectedRange("choose");
+    } finally {
+      setLoading(false);
+    }
+  }, [reportYear, reportMonth, profile]);
 
   const loadProfits = useCallback(async () => {
     try {
@@ -168,10 +199,12 @@ export default function UserDashboardPage() {
   }, [loadData]);
 
   useEffect(() => {
-    if (activeTab === "report") loadStoneReport();
+    if (activeTab === "report" && profile) {
+      loadStoneReportAndRanges();
+    }
     if (activeTab === "pay_pending") loadProfits();
     localStorage.setItem("clientActiveTab", activeTab);
-  }, [activeTab, loadStoneReport, loadProfits]);
+  }, [activeTab, profile, loadStoneReportAndRanges, loadProfits]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
@@ -196,12 +229,18 @@ export default function UserDashboardPage() {
   const activeJobs = useMemo(() => jobs.filter((j) => j.status !== "Completed"), [jobs]);
   const totalWeight = useMemo(() => allCompleted.reduce((s, j) => s + Number(j.weight), 0), [allCompleted]);
 
+  const filteredReportStones = useMemo(() => {
+    if (selectedRange === "choose") return [];
+    if (selectedRange === "all") return stoneReport;
+    return stoneReport.filter(s => isWeightInRange(s.weight, selectedRange));
+  }, [stoneReport, selectedRange]);
+
   // Stone report totals
   const reportTotals = useMemo(() => {
-    const totalWt = stoneReport.reduce((s, r) => s + Number(r.weight), 0);
-    const totalAmt = stoneReport.reduce((s, r) => s + Number(r.amount), 0);
-    return { weight: totalWt, amount: totalAmt, count: stoneReport.length };
-  }, [stoneReport]);
+    const totalWt = filteredReportStones.reduce((s, r) => s + Number(r.weight), 0);
+    const totalAmt = filteredReportStones.reduce((s, r) => s + Number(r.amount), 0);
+    return { weight: totalWt, amount: totalAmt, count: filteredReportStones.length };
+  }, [filteredReportStones]);
 
   // Billing totals
   const billingTotals = useMemo(() => {
@@ -875,7 +914,7 @@ export default function UserDashboardPage() {
               </div>
             </div>
             <div className="filter-row billing-controls-row" style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "340px" }}>
+              <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: stoneReport.length > 0 ? "540px" : "340px" }}>
                 <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
                   <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><Calendar size={14} /> Month</label>
                   <CustomSelect
@@ -894,9 +933,24 @@ export default function UserDashboardPage() {
                     style={{ width: "100%" }}
                   />
                 </div>
+                {stoneReport.length > 0 && (
+                  <div className="filter-group" style={{ marginBottom: 0, flex: 1.5 }}>
+                    <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><Gem size={14} /> Weight Range</label>
+                    <CustomSelect
+                      options={[
+                        { label: "Choose Range", value: "choose" },
+                        { label: "All Ranges", value: "all" },
+                        ...reportRanges.map(r => ({ label: r.range, value: r.range }))
+                      ]}
+                      value={selectedRange}
+                      onChange={setSelectedRange}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                )}
               </div>
               <div className="generate-btn-wrapper">
-                <button className="btn-primary btn-sm" onClick={loadStoneReport}>
+                <button className="btn-primary btn-sm" onClick={loadStoneReportAndRanges}>
                   <Filter size={14} /> Load Report
                 </button>
               </div>
@@ -933,7 +987,7 @@ export default function UserDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stoneReport.length ? stoneReport.map((s, i) => (
+                  {filteredReportStones.length ? filteredReportStones.map((s, i) => (
                     <tr key={s.job_id}>
                       <td>{i + 1}</td>
                       <td><strong>{s.stone_id}</strong></td>
@@ -945,11 +999,11 @@ export default function UserDashboardPage() {
                     <tr><td colSpan={5}>
                       <div className="empty-state">
                         <FileSpreadsheet size={32} />
-                        <p>No completed stones found in {MONTHS[reportMonth]} {reportYear}</p>
+                        <p>{selectedRange === "choose" ? "Choose a range to view records" : `No completed stones found in ${MONTHS[reportMonth]} ${reportYear}`}</p>
                       </div>
                     </td></tr>
                   )}
-                  {stoneReport.length > 0 && (
+                  {filteredReportStones.length > 0 && (
                     <tr className="total-row">
                       <td colSpan={2}><strong>TOTAL</strong></td>
                       <td><strong>{reportTotals.weight.toFixed(2)}</strong></td>
