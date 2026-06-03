@@ -1612,26 +1612,66 @@ tbody tr:last-child td {
   margin-bottom: 0;
 }
 
-/* ── Report Summary Cards ────────────────────────────────── */
+/* ── Excel Report Table Styles ────────────────────────── */
 
-.report-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+.excel-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
-.report-summary.clickable .report-stat {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+.excel-report-table th {
+  background: #e2efda; /* Soft green */
+  color: #375623;
+  font-weight: 700;
+  padding: 12px 16px;
+  border: 1px solid var(--border-light);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
-.report-summary.clickable:hover .report-stat {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary);
+[data-theme="dark"] .excel-report-table th {
+  background: rgba(55, 86, 35, 0.35);
+  color: #a9d08e;
+  border: 1px solid var(--border-light);
 }
 
-.report-summary.clickable:active .report-stat {
-  transform: translateY(0);
+.excel-report-table td {
+  padding: 12px 16px;
+  border: 1px solid var(--border-light);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.excel-report-table tr.summary-row {
+  transition: background-color 0.2s ease;
+}
+
+.excel-report-table tr.summary-row:hover {
+  background: var(--bg-card-hover);
+}
+
+.excel-report-table tr.total-row td {
+  background: #e2efda; /* Soft green */
+  color: #375623;
+  font-weight: 700;
+  border-top: 2px solid var(--border-light);
+  border-bottom: 2px solid var(--border-light);
+}
+
+[data-theme="dark"] .excel-report-table tr.total-row td {
+  background: rgba(55, 86, 35, 0.35);
+  color: #a9d08e;
+}
+
+.excel-report-table tr.expanded-row-container td {
+  border-top: none;
+  border-bottom: none;
 }
 
 .report-stat {

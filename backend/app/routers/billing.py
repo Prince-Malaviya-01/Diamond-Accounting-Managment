@@ -502,47 +502,15 @@ def get_user_weight_ranges(
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
-    """Fetch weight ranges. Accessible by Admin or the User themselves."""
+    """Fetch weight ranges and pricing configured for this user."""
     if not current_user.is_admin and current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
-    """Fetch all weight ranges configured for this user, but only those that have stones in the given period."""
-    import re
+        
     configs = db.query(PriceConfig).filter(PriceConfig.user_id == user_id, PriceConfig.valid_to == None).order_by(PriceConfig.sort_order).all()
     if not configs:
         configs = db.query(PriceConfig).filter(PriceConfig.user_id == None, PriceConfig.valid_to == None).order_by(PriceConfig.sort_order).all()
-    
-    # Get all stones for this user/period to check which ranges are populated
-    query = db.query(Job).filter(Job.user_id == user_id, Job.status == JobStatus.completed)
-    if year: query = query.filter(extract("year", Job.completed_at) == year)
-    if month: query = query.filter(extract("month", Job.completed_at) == month)
-    
-    stones = query.all()
-    if not stones:
-        return []
-
-    active_configs = []
-    for cfg in configs:
-        wr = cfg.weight_range.upper()
-        has_stones = False
-        try:
-            if "TO" in wr:
-                parts = wr.split("TO")
-                v1 = float(re.sub(r"[^0-9.]", "", parts[0]))
-                v2 = float(re.sub(r"[^0-9.]", "", parts[1]))
-                for s in stones:
-                    if v1 <= round(float(s.weight), 2) <= v2:
-                        has_stones = True; break
-            elif "UP" in wr:
-                v = float(re.sub(r"[^0-9.]", "", wr.replace("UP", "")))
-                for s in stones:
-                    if round(float(s.weight), 2) >= v:
-                        has_stones = True; break
-        except: pass
         
-        if has_stones:
-            active_configs.append({"id": cfg.id, "range": cfg.weight_range})
-            
-    return active_configs
+    return [{"id": cfg.id, "range": cfg.weight_range, "price": cfg.price_per_carat} for cfg in configs]
 
 @router.post("/report")
 def generate_custom_report(

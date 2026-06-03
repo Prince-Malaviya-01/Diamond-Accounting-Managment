@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import {
   Upload, CheckCircle2, Clock, Loader2, XCircle,
   Download, Trash2, Package, FileText, Gem,
@@ -130,7 +130,8 @@ export default function UserDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [showReportTable, setShowReportTable] = useState(false);
+  const [reportLoaded, setReportLoaded] = useState(false);
+  const [expandedRanges, setExpandedRanges] = useState([]);
 
   // Accounts/Payment state
   const [recordedProfits, setRecordedProfits] = useState([]);
@@ -180,11 +181,13 @@ export default function UserDashboardPage() {
       ]);
       setStoneReport(reportRes.data);
       setReportRanges(rangesRes.data);
-      setSelectedRange("choose");
+      setReportLoaded(true);
+      setExpandedRanges([]);
     } catch {
       setStoneReport([]);
       setReportRanges([]);
-      setSelectedRange("choose");
+      setReportLoaded(false);
+      setExpandedRanges([]);
     } finally {
       setLoading(false);
     }
@@ -206,7 +209,7 @@ export default function UserDashboardPage() {
   useEffect(() => {
     if (activeTab === "report" && profile) {
       const last = lastLoadedReportParamsRef.current;
-      if (last.month !== reportMonth || last.year !== reportYear || last.profileId !== profile.id) {
+      if (last.profileId !== profile.id) {
         lastLoadedReportParamsRef.current = { month: reportMonth, year: reportYear, profileId: profile.id };
         loadStoneReportAndRanges();
       }
@@ -214,7 +217,13 @@ export default function UserDashboardPage() {
       lastLoadedReportParamsRef.current = { month: null, year: null, profileId: null };
     }
     localStorage.setItem("clientActiveTab", activeTab);
-  }, [activeTab, profile, reportMonth, reportYear, loadStoneReportAndRanges]);
+  }, [activeTab, profile, loadStoneReportAndRanges]);
+
+  const toggleRangeExpand = (rangeStr) => {
+    setExpandedRanges(prev => 
+      prev.includes(rangeStr) ? prev.filter(r => r !== rangeStr) : [...prev, rangeStr]
+    );
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
@@ -243,19 +252,32 @@ export default function UserDashboardPage() {
   const activeJobs = useMemo(() => jobs.filter((j) => j.status !== "Completed"), [jobs]);
   const totalWeight = useMemo(() => allCompleted.reduce((s, j) => s + Number(j.weight), 0), [allCompleted]);
 
-  const filteredReportStones = useMemo(() => {
-    if (selectedRange === "choose") return [];
-    if (selectedRange === "all") return stoneReport;
-    return stoneReport.filter(s => isWeightInRange(s.weight, selectedRange));
-  }, [stoneReport, selectedRange]);
+  const rangeSummaries = useMemo(() => {
+    if (!reportRanges.length) return [];
+    return reportRanges.map(r => {
+      const matchingStones = stoneReport.filter(s => isWeightInRange(s.weight, r.range));
+      const pcs = matchingStones.length;
+      const carat = matchingStones.reduce((sum, s) => sum + Number(s.weight), 0);
+      const rateVal = parseFloat(r.price) || 0;
+      const totalAmt = carat * rateVal;
+      return {
+        id: r.id,
+        range: r.range,
+        rate: rateVal,
+        pcs,
+        carat,
+        totalAmt,
+        stones: matchingStones
+      };
+    });
+  }, [reportRanges, stoneReport]);
 
-  // Stone report totals
   const reportTotals = useMemo(() => {
-    const targetStones = (selectedRange === "choose" || selectedRange === "all") ? stoneReport : filteredReportStones;
-    const totalWt = targetStones.reduce((s, r) => s + Number(r.weight), 0);
-    const totalAmt = targetStones.reduce((s, r) => s + Number(r.amount), 0);
-    return { weight: totalWt, amount: totalAmt, count: targetStones.length };
-  }, [stoneReport, filteredReportStones, selectedRange]);
+    const pcs = rangeSummaries.reduce((sum, r) => sum + r.pcs, 0);
+    const carat = rangeSummaries.reduce((sum, r) => sum + r.carat, 0);
+    const amount = rangeSummaries.reduce((sum, r) => sum + r.totalAmt, 0);
+    return { pcs, carat, amount };
+  }, [rangeSummaries]);
 
   // Billing totals
   const billingTotals = useMemo(() => {
@@ -929,13 +951,13 @@ export default function UserDashboardPage() {
               </div>
             </div>
             <div className="filter-row billing-controls-row" style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: stoneReport.length > 0 ? "540px" : "340px" }}>
+              <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "450px", alignItems: "flex-end" }}>
                 <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
                   <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><Calendar size={14} /> Month</label>
                   <CustomSelect
                     options={MONTHS.slice(1).map((m, i) => ({ label: m, value: i + 1 }))}
                     value={reportMonth}
-                    onChange={setReportMonth}
+                    onChange={(val) => { setReportMonth(val); setReportLoaded(false); }}
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -944,121 +966,129 @@ export default function UserDashboardPage() {
                   <CustomSelect
                     options={yearOptions.map(y => ({ label: String(y), value: y }))}
                     value={reportYear}
-                    onChange={setReportYear}
+                    onChange={(val) => { setReportYear(val); setReportLoaded(false); }}
                     style={{ width: "100%" }}
                   />
                 </div>
-                {stoneReport.length > 0 && (
-                  <div className="filter-group" style={{ marginBottom: 0, flex: 1.5 }}>
-                    <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><Gem size={14} /> Weight Range</label>
-                    <CustomSelect
-                      options={[
-                        { label: "Choose Range", value: "choose" },
-                        { label: "All Ranges", value: "all" },
-                        ...reportRanges.map(r => ({ label: r.range, value: r.range }))
-                      ]}
-                      value={selectedRange}
-                      onChange={setSelectedRange}
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                )}
+                <button 
+                  type="button" 
+                  className="btn-primary" 
+                  onClick={loadStoneReportAndRanges}
+                  style={{ height: "42px", padding: "0 20px", display: "flex", alignItems: "center", gap: "6px" }}
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 size={16} className="spin" /> : <Eye size={16} />} Show Report
+                </button>
               </div>
             </div>
 
-            {/* Report summary cards */}
-            {stoneReport.length > 0 && (
-              <div 
-                className={`report-summary ${selectedRange !== "choose" ? "clickable" : ""}`}
-                onClick={() => {
-                  if (selectedRange !== "choose") {
-                    setShowReportTable(prev => !prev);
-                  }
-                }}
-                style={selectedRange !== "choose" ? { cursor: "pointer" } : {}}
-                title={selectedRange !== "choose" ? "Click to toggle detailed records" : ""}
-              >
-                <div className="report-stat">
-                  <span className="report-stat-label">Total Stones</span>
-                  <span className="report-stat-value">{reportTotals.count}</span>
+            {/* Excel-style summary & detail report */}
+            {reportLoaded && (
+              reportRanges.length === 0 ? (
+                <div className="empty-state">
+                  <FileSpreadsheet size={32} />
+                  <p>No configured weight ranges or records found for this client.</p>
                 </div>
-                <div className="report-stat">
-                  <span className="report-stat-label">Total Weight</span>
-                  <span className="report-stat-value">{reportTotals.weight.toFixed(2)} ct</span>
-                </div>
-                <div className="report-stat highlight">
-                  <span className="report-stat-label">Total Amount</span>
-                  <span className="report-stat-value">₹{reportTotals.amount.toFixed(2)}</span>
-                </div>
-              </div>
-            )}
-
-            {stoneReport.length > 0 && selectedRange !== "choose" && (
-              <div 
-                className="report-toggle-helper"
-                style={{ 
-                  textAlign: "center", 
-                  fontSize: "0.85rem", 
-                  color: "var(--primary)", 
-                  marginTop: 12, 
-                  marginBottom: 8, 
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
-                  fontWeight: 600,
-                  userSelect: "none"
-                }}
-                onClick={() => setShowReportTable(prev => !prev)}
-              >
-                {showReportTable ? "Hide Detailed Records ▲" : "Click here to show detailed records ▼"}
-              </div>
-            )}
-
-            {/* Stone detail table */}
-            {showReportTable && (
-              <div className="table-container" style={{ marginTop: 16 }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Stone ID</th>
-                      <th>Weight (ct)</th>
-                      <th>Completed On</th>
-                      <th style={{ textAlign: "right" }}>Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredReportStones.length ? (
-                      filteredReportStones.map((s, i) => (
-                        <tr key={s.job_id}>
-                          <td>{i + 1}</td>
-                          <td><strong>{s.stone_id}</strong></td>
-                          <td>{Number(s.weight).toFixed(2)}</td>
-                          <td style={{ fontSize: ".85rem" }}>{s.completed_at ? new Date(s.completed_at).toLocaleDateString('en-GB') : "-"}</td>
-                          <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(s.amount).toFixed(2)}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr><td colSpan={5}>
-                        <div className="empty-state">
-                          <FileSpreadsheet size={32} />
-                          <p>{`No completed stones found in ${MONTHS[reportMonth]} ${reportYear}`}</p>
-                        </div>
-                      </td></tr>
-                    )}
-                    {filteredReportStones.length > 0 && (
+              ) : (
+                <div className="table-container" style={{ marginTop: 16 }}>
+                  <table className="excel-report-table">
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left" }}>Range</th>
+                        <th style={{ textAlign: "right" }}>Pcs</th>
+                        <th style={{ textAlign: "right" }}>Carat</th>
+                        <th style={{ textAlign: "right" }}>Rate</th>
+                        <th style={{ textAlign: "right" }}>Total Rs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rangeSummaries.map((s) => {
+                        const isExpanded = expandedRanges.includes(s.range);
+                        return (
+                          <Fragment key={s.id}>
+                            <tr 
+                              className="summary-row" 
+                              onClick={() => toggleRangeExpand(s.range)}
+                              style={{ cursor: "pointer" }}
+                            >
+                              <td><strong>{s.range}</strong></td>
+                              <td style={{ textAlign: "right" }}>{s.pcs}</td>
+                              <td style={{ textAlign: "right" }}>{s.carat.toFixed(2)}</td>
+                              <td style={{ textAlign: "right" }}>₹{s.rate.toFixed(2)}</td>
+                              <td style={{ textAlign: "right", fontWeight: 600 }}>₹{s.totalAmt.toFixed(2)}</td>
+                            </tr>
+                            {isExpanded && (
+                              <tr className="expanded-row-container" style={{ background: "var(--bg-card-hover)" }}>
+                                <td colSpan={5} style={{ padding: "16px 20px" }}>
+                                  <div 
+                                    className="report-toggle-helper"
+                                    style={{ 
+                                      textAlign: "center", 
+                                      fontSize: "0.85rem", 
+                                      color: "var(--primary)", 
+                                      marginBottom: 12, 
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: "6px",
+                                      fontWeight: 600,
+                                      userSelect: "none"
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleRangeExpand(s.range);
+                                    }}
+                                  >
+                                    Hide Detailed Records ▲
+                                  </div>
+                                  <div className="table-container nested-table" style={{ border: "1.5px solid var(--border-light)", borderRadius: "8px" }}>
+                                    <table style={{ width: "100%" }}>
+                                      <thead>
+                                        <tr>
+                                          <th>#</th>
+                                          <th>Stone ID</th>
+                                          <th>Weight (ct)</th>
+                                          <th>Completed On</th>
+                                          <th style={{ textAlign: "right" }}>Amount (₹)</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {s.stones.length ? s.stones.map((stone, idx) => (
+                                          <tr key={stone.job_id}>
+                                            <td>{idx + 1}</td>
+                                            <td><strong>{stone.stone_id}</strong></td>
+                                            <td>{Number(stone.weight).toFixed(2)}</td>
+                                            <td style={{ fontSize: ".85rem" }}>{stone.completed_at ? new Date(stone.completed_at).toLocaleDateString('en-GB') : "-"}</td>
+                                            <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(stone.amount).toFixed(2)}</td>
+                                          </tr>
+                                        )) : (
+                                          <tr>
+                                            <td colSpan={5} style={{ textAlign: "center", color: "var(--text-light)", padding: "20px" }}>
+                                              No completed stones found in this range
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
                       <tr className="total-row">
-                        <td colSpan={2}><strong>TOTAL</strong></td>
-                        <td><strong>{reportTotals.weight.toFixed(2)}</strong></td>
-                        <td><strong>{reportTotals.count} stones</strong></td>
+                        <td><strong>TOTAL</strong></td>
+                        <td style={{ textAlign: "right" }}><strong>{reportTotals.pcs}</strong></td>
+                        <td style={{ textAlign: "right" }}><strong>{reportTotals.carat.toFixed(2)}</strong></td>
+                        <td></td>
                         <td style={{ textAlign: "right" }}><strong>₹{reportTotals.amount.toFixed(2)}</strong></td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    </tbody>
+                  </table>
+                </div>
+              )
             )}
           </div>
 
