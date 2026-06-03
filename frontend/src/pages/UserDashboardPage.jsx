@@ -87,7 +87,6 @@ export default function UserDashboardPage() {
   const [billing, setBilling] = useState([]);
   const [stoneReport, setStoneReport] = useState([]);
   const [reportRanges, setReportRanges] = useState([]);
-  const [selectedRange, setSelectedRange] = useState("choose");
   const [form, setForm] = useState({ files: [] });
   const [fileInputKey, setFileInputKey] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -229,10 +228,6 @@ export default function UserDashboardPage() {
     const savedTheme = localStorage.getItem("theme") || "dark";
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
-
-  useEffect(() => {
-    setShowReportTable(false);
-  }, [selectedRange]);
 
   const handleDownloadStatement = async () => {
     try {
