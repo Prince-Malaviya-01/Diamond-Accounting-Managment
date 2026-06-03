@@ -106,6 +106,7 @@ export default function UserDashboardPage() {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem("clientActiveTab") || "stones"); // stones | report | billing | pay_pending | downloaded_files
   const fileInputRef = useRef(null);
   const msgTimer = useRef(null);
+  const initializedReportRef = useRef(false);
 
   // Stone report month/year filter
   const now = new Date();
@@ -158,7 +159,10 @@ export default function UserDashboardPage() {
       billingApi.getHistory(),
       api.get("/jobs/summary"),
     ]);
-    setProfile(profileRes.data);
+    setProfile(prev => {
+      if (prev && JSON.stringify(prev) === JSON.stringify(profileRes.data)) return prev;
+      return profileRes.data;
+    });
     setJobs(jobsRes.data);
     setBilling(billingRes.data);
     setSummary(summaryRes.data);
@@ -199,12 +203,16 @@ export default function UserDashboardPage() {
   }, [loadData]);
 
   useEffect(() => {
-    if (activeTab === "report" && profile) {
-      loadStoneReportAndRanges();
+    if (activeTab === "report") {
+      if (profile && !initializedReportRef.current) {
+        initializedReportRef.current = true;
+        loadStoneReportAndRanges();
+      }
+    } else {
+      initializedReportRef.current = false;
     }
-    if (activeTab === "pay_pending") loadProfits();
     localStorage.setItem("clientActiveTab", activeTab);
-  }, [activeTab, profile, loadStoneReportAndRanges, loadProfits]);
+  }, [activeTab, profile, loadStoneReportAndRanges]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
