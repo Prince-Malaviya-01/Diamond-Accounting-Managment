@@ -728,14 +728,14 @@ export default function AdminDashboardPage() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     
-    // Filter jobs: if selectedJobs has items, filter by selectedJobs. Otherwise, match across all active jobs.
+    // Filter jobs: if selectedJobs has items, filter by selectedJobs. Otherwise, match across all active jobs in "Processing" status.
     const activeJobs = jobs.filter(j => 
       (selectedJobs.length === 0 || selectedJobs.includes(j.id)) && 
-      (j.status === "Processing" || j.status === "Uploaded" || j.status === "Queued")
+      (j.status === "Processing")
     );
     
     if (!activeJobs.length) {
-      showMsg("No active (Processing, Uploaded, or Queued) jobs match files");
+      showMsg("No active (Processing) jobs match files");
       e.target.value = "";
       return;
     }
@@ -1830,7 +1830,7 @@ export default function AdminDashboardPage() {
                               <Play size={13} />
                             </button>
                           )}
-                           {(j.status === "Processing" || j.status === "Uploaded" || j.status === "Queued") && (
+                          {j.status === "Processing" && (
                             <label className="btn-success btn-sm" style={{ cursor: "pointer", marginBottom: 0 }} title="Upload Result">
                               <Upload size={13} /> Result
                               <input type="file" multiple style={{ display: "none" }}
