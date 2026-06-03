@@ -72,6 +72,7 @@ def _seed_admin() -> None:
                     rate_per_carat=0.0,
                     status="approved",
                     is_admin=True,
+                    email="rbsofttech17@gmail.com"
                 )
             )
             db.commit()

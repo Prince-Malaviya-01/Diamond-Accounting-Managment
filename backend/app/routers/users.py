@@ -22,6 +22,7 @@ def me(user: User = Depends(get_current_user)):
         "rate_per_carat": user.rate_per_carat,
         "created_at": user.created_at,
         "is_admin": user.is_admin,
+        "email": user.email,
     }
 
 
@@ -42,6 +43,7 @@ def list_users(admin: User = Depends(get_current_admin), db: Session = Depends(g
             "created_at": u.created_at,
             "is_admin": u.is_admin,
             "status": u.status,
+            "email": u.email,
         }
         for u in rows
     ]

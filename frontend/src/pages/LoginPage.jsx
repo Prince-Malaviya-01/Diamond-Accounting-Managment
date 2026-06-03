@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Diamond, Eye, EyeOff, LogIn, ArrowLeft, KeyRound, Mail, ShieldAlert, CheckCircle2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -28,6 +28,74 @@ export default function LoginPage({ mode = "client", isModal = false, onClose })
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
+  const otpRefs = useRef([]);
+
+  const [toastMessage, setToastMessage] = useState("");
+  const toastTimer = useRef(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => {
+      setToastMessage("");
+    }, 5000);
+  };
+
+  useEffect(() => {
+    return () => clearTimeout(toastTimer.current);
+  }, []);
+
+  useEffect(() => {
+    setForgotOtp(otpValues.join(""));
+  }, [otpValues]);
+
+  useEffect(() => {
+    if (forgotStep === 2) {
+      setTimeout(() => {
+        otpRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [forgotStep]);
+
+  const handleOtpChange = (index, value) => {
+    const digit = value.slice(-1);
+    if (digit && !/^\d$/.test(digit)) return;
+
+    const newOtp = [...otpValues];
+    newOtp[index] = digit;
+    setOtpValues(newOtp);
+
+    if (digit && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace") {
+      if (!otpValues[index] && index > 0) {
+        const newOtp = [...otpValues];
+        newOtp[index - 1] = "";
+        setOtpValues(newOtp);
+        otpRefs.current[index - 1]?.focus();
+      } else {
+        const newOtp = [...otpValues];
+        newOtp[index] = "";
+        setOtpValues(newOtp);
+      }
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("text").trim();
+    if (/^\d{6}$/.test(pasteData)) {
+      const digits = pasteData.split("");
+      setOtpValues(digits);
+      otpRefs.current[5]?.focus();
+    }
+  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -108,11 +176,12 @@ export default function LoginPage({ mode = "client", isModal = false, onClose })
       setForgotStep(1);
       setForgotEmail("");
       setForgotOtp("");
+      setOtpValues(["", "", "", "", "", ""]);
       setForgotPasswords({ newPwd: "", confirmPwd: "" });
       
       setLoginError("");
-      // Show success message on the standard login card
-      alert(data.message || "Password updated successfully. Please login with your new password.");
+      // Show success message as a premium toast notification
+      showToast(data.message || "✓ Password updated successfully. Please login with your new password.");
     } catch (err) {
       setForgotError(err.response?.data?.detail || "Failed to update password.");
     } finally {
@@ -125,6 +194,7 @@ export default function LoginPage({ mode = "client", isModal = false, onClose })
     setForgotStep(1);
     setForgotError("");
     setForgotSuccess("");
+    setOtpValues(["", "", "", "", "", ""]);
   };
 
   const handleBackdropClick = (e) => {
@@ -237,7 +307,7 @@ export default function LoginPage({ mode = "client", isModal = false, onClose })
             <KeyRound size={28} />
           </div>
           <h1>Reset Password</h1>
-          <p style={{ marginBottom: "20px" }}>Admin Security Portal</p>
+          <p style={{ marginBottom: "20px" }}>{isAdminLogin ? "Admin Security Portal" : "Client Security Portal"}</p>
 
           {/* Feedback states */}
           {forgotError && (
@@ -282,8 +352,8 @@ export default function LoginPage({ mode = "client", isModal = false, onClose })
               <div style={{ position: "relative", marginBottom: "16px" }}>
                 <input
                   type="email"
-                  placeholder="Enter registered Admin Email"
-                  aria-label="Registered Admin Email"
+                  placeholder={isAdminLogin ? "Enter registered Admin Email" : "Enter registered Client Email"}
+                  aria-label="Registered Email"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                   required
@@ -301,18 +371,34 @@ export default function LoginPage({ mode = "client", isModal = false, onClose })
           {/* STEP 2: Input OTP */}
           {forgotStep === 2 && (
             <form onSubmit={handleVerifyOtp}>
-              <div style={{ position: "relative", marginBottom: "16px" }}>
-                <input
-                  type="text"
-                  placeholder="Enter 6-Digit OTP"
-                  aria-label="6-Digit OTP"
-                  value={forgotOtp}
-                  onChange={(e) => setForgotOtp(e.target.value)}
-                  required
-                  maxLength={6}
-                  autoFocus
-                  style={{ textAlign: "center", letterSpacing: "6px", fontSize: "1.2rem", fontWeight: 700 }}
-                />
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", marginBottom: "20px" }}>
+                {otpValues.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    type="text"
+                    ref={(el) => (otpRefs.current[idx] = el)}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    onPaste={handleOtpPaste}
+                    maxLength={1}
+                    required
+                    style={{
+                      width: "44px",
+                      height: "46px",
+                      fontSize: "1.4rem",
+                      fontWeight: "700",
+                      textAlign: "center",
+                      borderRadius: "8px",
+                      border: "1.5px solid var(--border)",
+                      background: "var(--bg-card)",
+                      color: "var(--text)",
+                      margin: "0 2px",
+                      padding: 0,
+                      transition: "all var(--transition)"
+                    }}
+                  />
+                ))}
               </div>
               <button type="submit" className="btn-primary" disabled={forgotLoading} style={{ width: "100%", justifyContent: "center", padding: "12px", marginBottom: "12px" }}>
                 {forgotLoading ? "Verifying..." : "Verify Code"}
@@ -476,29 +562,28 @@ export default function LoginPage({ mode = "client", isModal = false, onClose })
             {loginLoading ? "Signing in..." : "Sign In"}
           </button>
 
-          {/* Render Forgot Password link only for Admin Login */}
-          {isAdminLogin && (
-            <div style={{ textAlign: "center", marginTop: "4px" }}>
-              <button 
-                type="button" 
-                className="btn-ghost" 
-                onClick={() => setForgotMode(true)}
-                style={{ 
-                  background: "none", 
-                  border: "none", 
-                  color: "var(--primary-light)", 
-                  fontSize: "0.85rem", 
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  padding: "4px 8px"
-                }}
-              >
-                Forgot Password?
-              </button>
-            </div>
-          )}
+          {/* Render Forgot Password link for both Admin and Client Logins */}
+          <div style={{ textAlign: "center", marginTop: "4px" }}>
+            <button 
+              type="button" 
+              className="btn-ghost" 
+              onClick={() => setForgotMode(true)}
+              style={{ 
+                background: "none", 
+                border: "none", 
+                color: "var(--primary-light)", 
+                fontSize: "0.85rem", 
+                fontWeight: 600,
+                cursor: "pointer",
+                padding: "4px 8px"
+              }}
+            >
+              Forgot Password?
+            </button>
+          </div>
         </form>
       )}
+      {toastMessage && <div className="toast">{toastMessage}</div>}
     </div>
   );
 }

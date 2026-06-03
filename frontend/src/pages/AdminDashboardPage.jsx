@@ -115,7 +115,8 @@ export default function AdminDashboardPage() {
     company_name: "",
     username: "",
     password: "",
-    rate_per_carat: 0.0
+    rate_per_carat: 0.0,
+    email: ""
   });
   const [registerError, setRegisterError] = useState("");
   const [registerSuccess, setRegisterSuccess] = useState("");
@@ -864,14 +865,16 @@ export default function AdminDashboardPage() {
         company_name: registerForm.company_name.trim(),
         username: uname,
         password: registerForm.password,
-        rate_per_carat: Number(registerForm.rate_per_carat) || 0.0
+        rate_per_carat: Number(registerForm.rate_per_carat) || 0.0,
+        email: registerForm.email.trim()
       });
       setRegisterSuccess("✓ Client account registered successfully!");
       setRegisterForm({
         company_name: "",
         username: "",
         password: "",
-        rate_per_carat: 0.0
+        rate_per_carat: 0.0,
+        email: ""
       });
       load(); // Reload users & dashboard stats
       setTimeout(() => {
@@ -1397,7 +1400,7 @@ export default function AdminDashboardPage() {
         {/* ── Stats ── */}
         {stats && (
           <section className="stats-grid">
-            <StatCard label="Approved Users" value={stats.total_users}
+            <StatCard label="Total Clients" value={stats.total_users}
               icon={<Users size={20} />} color="blue" />
             <StatCard label="Total Jobs" value={jobSummary?.total ?? stats.total_uploaded_jobs}
               icon={<Package size={20} />} color="purple" />
@@ -1865,7 +1868,7 @@ export default function AdminDashboardPage() {
               <div className="panel-header">
                 <div className="panel-title">
                   <div className="panel-icon blue"><Users size={18} /></div>
-                  <h3>Registered Users</h3>
+                  <h3>Registered Clients</h3>
                 </div>
                 <span className="panel-badge blue">{users.length}</span>
               </div>
@@ -1876,6 +1879,7 @@ export default function AdminDashboardPage() {
                       <th>ID</th>
                       <th>Company</th>
                       <th>Username</th>
+                      <th>Email</th>
                       <th>Status</th>
                       <th>Role</th>
                       <th>Stones</th>
@@ -1898,6 +1902,9 @@ export default function AdminDashboardPage() {
                               </div>
                               <span>{u.username}</span>
                             </div>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: ".82rem", color: "var(--text-secondary)" }}>{u.email || "-"}</span>
                           </td>
                           <td>
                             <span className={`status-badge ${u.status === "approved" ? "completed" : u.status === "rejected" ? "failed" : "queued"}`}>
@@ -3941,6 +3948,18 @@ export default function AdminDashboardPage() {
                     placeholder="e.g. suratgems"
                     value={registerForm.username}
                     onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email ID</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. client@example.com"
+                    value={registerForm.email}
+                    onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                     autoComplete="off"
                   />
                 </div>

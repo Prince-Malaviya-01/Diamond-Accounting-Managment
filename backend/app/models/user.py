@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from app.utils.time import get_ist_now_naive
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String
@@ -18,3 +19,4 @@ class User(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_ist_now_naive, nullable=False)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

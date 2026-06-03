@@ -238,7 +238,7 @@ export default function IndexPage() {
 
             {/* Hero Right Interactive Diamond */}
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%", minWidth: 0, overflow: "visible" }}>
-              <ScrollReveal direction="right" delay={400} style={{ width: "100%", display: "flex", justifyContent: "center", minWidth: 0 }}>
+              <ScrollReveal direction="right" delay={400} style={{ width: "100%", display: "flex", justifyContent: "center", minWidth: 0, marginTop: "-60px" }}>
                 {(() => {
                   const lighthouseFallback = (
                     <div className="diamond-studio-container" style={{

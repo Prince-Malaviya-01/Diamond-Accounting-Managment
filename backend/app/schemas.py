@@ -11,6 +11,7 @@ class RegisterRequest(BaseModel):
     username: str
     password: str
     rate_per_carat: Optional[float] = 0.0
+    email: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

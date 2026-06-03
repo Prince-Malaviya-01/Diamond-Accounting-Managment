@@ -40,7 +40,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         password=hash_password(payload.password),
         rate_per_carat=payload.rate_per_carat,
         status="approved",
-        is_admin=False
+        is_admin=False,
+        email=payload.email.strip().lower() if payload.email else None
     )
     db.add(pending_user)
     db.commit()
@@ -102,36 +103,29 @@ otp_store = {}
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
     
-    # 1. Verify registered Admin email
-    if email != "rbsofttech17@gmail.com":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Enter the registered Admin email address."
-        )
-        
-    # 2. Verify Admin user exists in DB
-    admin_user = db.query(User).filter(User.is_admin == True).first()
-    if not admin_user:
+    # 1. Verify user exists with this email address
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Admin user account not found in database."
+            detail="Enter a registered email address."
         )
         
-    # 3. Generate random 6-digit OTP
+    # 2. Generate random 6-digit OTP
     otp = f"{random.randint(100000, 999999)}"
     otp_store[email] = {
         "otp": otp,
         "expires": time.time() + 600  # 10 minutes active window
     }
     
-    # 4. Critical print to console for quick developer testing
+    # 3. Critical print to console for quick developer testing
     print("\n" + "="*70)
-    print(f"🔑 SECURITY OTP GENERATED FOR ADMIN PASSWORD RESET:")
+    print(f"🔑 SECURITY OTP GENERATED FOR PASSWORD RESET:")
     print(f"➜ Registered Email : {email}")
     print(f"➜ Generated 6-Digit OTP : {otp}")
     print("="*70 + "\n")
     
-    # 5. Attempt actual SMTP delivery if configured in Settings (.env)
+    # 4. Attempt actual SMTP delivery if configured in Settings (.env)
     settings = get_settings()
     smtp_host = settings.smtp_host
     smtp_port = settings.smtp_port
@@ -141,15 +135,16 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     email_sent = False
     if smtp_user and smtp_password:
         try:
+            greeting = "Hello Admin" if user.is_admin else f"Hello {user.company_name}"
             msg = MIMEText(
-                f"Hello Admin,\n\n"
+                f"{greeting},\n\n"
                 f"Your 6-digit OTP to reset your Diamond Processing system password is: {otp}\n\n"
                 f"This code will expire in 10 minutes.\n\n"
                 f"Regards,\n"
                 f"Diamond Processing Security Engine"
             )
-            msg["Subject"] = "Diamond Admin Password Reset OTP"
-            msg["From"] = smtp_user
+            msg["Subject"] = "Diamond Portal Password Reset OTP"
+            msg["From"] = f"no-reply <{smtp_user}>"
             msg["To"] = email
             
             with smtplib.SMTP(smtp_host, smtp_port) as server:
@@ -169,11 +164,12 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
 
 
 @router.post("/verify-otp")
-def verify_otp(payload: VerifyOTPRequest):
+def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
     otp = payload.otp.strip()
     
-    if email != "rbsofttech17@gmail.com":
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Invalid email address."
@@ -208,7 +204,8 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     otp = payload.otp.strip()
     new_password = payload.new_password
     
-    if email != "rbsofttech17@gmail.com":
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Invalid email address."
@@ -221,19 +218,12 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
             detail="Security validation failed: Invalid or expired OTP."
         )
         
-    admin_user = db.query(User).filter(User.is_admin == True).first()
-    if not admin_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Admin user not found."
-        )
-        
     # Update and hash password
-    admin_user.password = hash_password(new_password)
+    user.password = hash_password(new_password)
     db.commit()
     
     # Clear the used OTP
     otp_store.pop(email, None)
     
-    log_activity(db, "admin_reset_password", f"Admin password reset successfully via secure OTP verification", admin_user.id)
+    log_activity(db, "admin_reset_password" if user.is_admin else "user_reset_password", f"Password reset successfully via secure OTP verification", user.id)
     return {"message": "Password updated successfully"}

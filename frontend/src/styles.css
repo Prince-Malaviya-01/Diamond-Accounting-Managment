@@ -12,9 +12,9 @@
   --text: #0f172a;
   --text-secondary: #334155; /* Enhanced contrast Slate-700 (6.0:1 on #f4f6fa) */
   --text-light: #6b7280; /* Enhanced contrast Gray-500 */
-  --border: rgba(99, 102, 241, 0.18);
-  --border-light: rgba(99, 102, 241, 0.1);
-  --border-glass: rgba(255, 255, 255, 0.55);
+  --border: rgba(99, 102, 241, 0.32);
+  --border-light: rgba(99, 102, 241, 0.25);
+  --border-glass: rgba(99, 102, 241, 0.32);
   --primary: #4f46e5;
   --primary-light: #6366f1;
   --primary-bg: rgba(99, 102, 241, 0.07);
@@ -970,7 +970,7 @@ table {
   border-spacing: 0 8px; /* Futuristic row spacing */
   font-size: 0.8rem;
   table-layout: auto;
-  margin-top: -10px;
+  margin-top: 0;
 }
 
 thead {
@@ -1013,10 +1013,10 @@ td a.btn {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  display: inline-block !important;
-  text-align: center;
-  vertical-align: middle;
-  line-height: 28px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 0 10px !important;
   font-size: 0.78rem !important;
   height: 28px !important;
@@ -1045,18 +1045,29 @@ tbody tr {
 tbody td:first-child {
   border-top-left-radius: 12px;
   border-bottom-left-radius: 12px;
-  border-left: 1px solid var(--border-glass);
+  border-left: 1px solid var(--border-light);
 }
 
 tbody td:last-child {
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
-  border-right: 1px solid var(--border-glass);
+  border-right: 1px solid var(--border-light);
 }
 
 tbody tr td {
-  border-top: 1px solid var(--border-glass);
-  border-bottom: 1px solid var(--border-glass);
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+
+th:first-child,
+td:first-child {
+  padding-left: 20px !important;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 20px !important;
+  text-align: right !important;
 }
 
 tbody tr:hover {
@@ -2251,6 +2262,7 @@ tbody tr:last-child td {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  padding: 0 16px;
 }
 
 .table-container::-webkit-scrollbar {
@@ -2612,7 +2624,7 @@ html.theme-transition * {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 30px;
   box-shadow: var(--shadow);
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto 40px auto;
 }
 
