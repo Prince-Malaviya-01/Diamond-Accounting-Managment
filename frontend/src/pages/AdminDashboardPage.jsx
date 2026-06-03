@@ -756,7 +756,12 @@ export default function AdminDashboardPage() {
         // Find if there is a selected job in "Processing" status matching this stone ID stem
         const matchingJob = processingJobs.find(j => {
           const jobStoneId = j.stone_id.trim().toLowerCase();
-          return (stem === jobStoneId) || (stem.length === jobStoneId.length + 1 && stem.startsWith(jobStoneId));
+          let cleanStem = stem;
+          if (cleanStem.endsWith('a')) {
+            cleanStem = cleanStem.slice(0, -1);
+          }
+          cleanStem = cleanStem.replace(/[_\s]+$/, '');
+          return cleanStem === jobStoneId;
         });
         
         if (matchingJob) {

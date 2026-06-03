@@ -29,17 +29,38 @@ def _candidate_stone_keys(stem: str) -> list[str]:
     if not value:
         return []
     keys = [value]
-    if len(value) > 1:
-        stripped = value[:-1]
-        if stripped not in keys:
-            keys.append(stripped)
+    
+    # Strip trailing 'a'/'A' and any spaces/underscores/hyphens
+    lower_val = value.lower()
+    clean_val = lower_val
+    if clean_val.endswith('a'):
+        clean_val = clean_val[:-1]
+    clean_val = clean_val.rstrip("_ -")
+    
+    # Find original casing match if possible or fallback to lower
+    if clean_val:
+        # Match original prefix casing
+        prefix_len = len(clean_val)
+        original_clean = value[:prefix_len]
+        if original_clean not in keys:
+            keys.append(original_clean)
+            
     token = value.split("_")[0].strip()
     if token and token not in keys:
         keys.append(token)
-    if token and len(token) > 1:
-        token_stripped = token[:-1]
-        if token_stripped not in keys:
-            keys.append(token_stripped)
+        
+    lower_tok = token.lower()
+    clean_tok = lower_tok
+    if clean_tok.endswith('a'):
+        clean_tok = clean_tok[:-1]
+    clean_tok = clean_tok.rstrip("_ -")
+    
+    if clean_tok:
+        prefix_tok_len = len(clean_tok)
+        original_tok_clean = token[:prefix_tok_len]
+        if original_tok_clean not in keys:
+            keys.append(original_tok_clean)
+            
     return keys
 
 
