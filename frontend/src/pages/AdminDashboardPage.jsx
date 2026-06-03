@@ -87,7 +87,18 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [bulkCompleting, setBulkCompleting] = useState(false);
   const [bulkCompleteProgress, setBulkCompleteProgress] = useState(null);
+  const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [bulkDownloadProgress, setBulkDownloadProgress] = useState(null);
+  const [downloadingSingleId, setDownloadingSingleId] = useState(null);
+  const [singleDownloadProgress, setSingleDownloadProgress] = useState(null);
+  const [showEditCompletedModal, setShowEditCompletedModal] = useState(false);
+  const [editingCompletedJob, setEditingCompletedJob] = useState(null);
+  const [editWeight, setEditWeight] = useState("");
+  const [editCompletedFile, setEditCompletedFile] = useState(null);
+  const [editCompletedLoading, setEditCompletedLoading] = useState(false);
   const msgTimer = useRef(null);
+  const tabBarRef = useRef(null);
+  const [selectedCompletedJobs, setSelectedCompletedJobs] = useState([]);
 
   // Billing state
   const now = new Date();
@@ -678,6 +689,16 @@ export default function AdminDashboardPage() {
     }
   }, [activeTab, loadProfits, loadPriceConfig, loadLocalBackupStatus]);
 
+  // Auto horizontal scroll tab bar to bring the active tab into view
+  useEffect(() => {
+    if (tabBarRef.current) {
+      const activeEl = tabBarRef.current.querySelector(".tab-btn.active");
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
+  }, [activeTab]);
+
   const handleBulkAction = async (action) => {
     if (selectedJobs.length === 0) return;
     
@@ -961,11 +982,139 @@ export default function AdminDashboardPage() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadFile = async (url, fallbackName) => {
+  const downloadFile = async (url, fallbackName, jobId = null) => {
     try {
-      const res = await api.get(url, { responseType: "blob" });
+      if (jobId) {
+        setDownloadingSingleId(jobId);
+        setSingleDownloadProgress(0);
+      }
+      const res = await api.get(url, { 
+        responseType: "blob",
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            if (jobId) {
+              setSingleDownloadProgress(percent);
+            }
+          }
+        }
+      });
       saveBlob(res.data, fallbackName);
-    } catch { showMsg("Download failed"); }
+      if (jobId) {
+        showMsg(`✓ Download complete`);
+        load();
+      }
+    } catch { 
+      showMsg("Download failed"); 
+    } finally {
+      if (jobId) {
+        setDownloadingSingleId(null);
+        setSingleDownloadProgress(null);
+      }
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    const jobsToDownload = filteredJobs.filter(j => selectedJobs.includes(j.id) && !j.downloaded);
+    
+    if (jobsToDownload.length === 0) {
+      showMsg("No new (non-downloaded) files selected for bulk download");
+      return;
+    }
+    
+    setBulkDownloading(true);
+    setBulkDownloadProgress(0);
+    try {
+      showMsg("Preparing zip download...");
+      const res = await api.post(
+        "/admin/jobs/download-bulk",
+        { job_ids: jobsToDownload.map(j => j.id) },
+        {
+          responseType: "blob",
+          onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setBulkDownloadProgress(percent);
+            }
+          }
+        }
+      );
+      
+      const timestamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
+      saveBlob(res.data, `uploaded_stones_${timestamp}.zip`);
+      showMsg(`✓ Downloaded ${jobsToDownload.length} files successfully`);
+      setSelectedJobs([]);
+      load();
+    } catch (err) {
+      showMsg("Bulk download failed");
+    } finally {
+      setBulkDownloading(false);
+      setBulkDownloadProgress(null);
+    }
+  };
+
+  const openEditCompletedModal = (job) => {
+    setEditingCompletedJob(job);
+    setEditWeight(job.weight);
+    setEditCompletedFile(null);
+    setShowEditCompletedModal(true);
+  };
+
+  const handleSaveEditCompleted = async (e) => {
+    e.preventDefault();
+    if (!editingCompletedJob) return;
+    
+    setEditCompletedLoading(true);
+    try {
+      if (Number(editWeight) !== Number(editingCompletedJob.weight)) {
+        await api.post("/admin/update-weight", { 
+          job_id: editingCompletedJob.id, 
+          weight: Number(editWeight) 
+        });
+      }
+      
+      if (editCompletedFile) {
+        const fd = new FormData();
+        fd.append("job_id", editingCompletedJob.id);
+        fd.append("file", editCompletedFile);
+        await api.post("/admin/upload-result", fd);
+      }
+      
+      showMsg("✓ Completed job updated successfully");
+      setShowEditCompletedModal(false);
+      load();
+    } catch (err) {
+      showMsg(err.response?.data?.detail || "Failed to update completed job");
+    } finally {
+      setEditCompletedLoading(false);
+    }
+  };
+
+  const handleBulkDeleteCompleted = () => {
+    if (selectedCompletedJobs.length === 0) return;
+    
+    setConfirmModal({
+      show: true,
+      title: "Confirm Bulk Delete",
+      message: `Are you sure you want to permanently delete the ${selectedCompletedJobs.length} selected completed job(s)? This cannot be undone.`,
+      confirmLabel: "Delete",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          for (const id of selectedCompletedJobs) {
+            await api.delete(`/jobs/${id}`);
+          }
+          setSelectedCompletedJobs([]);
+          load();
+          showMsg("✓ Bulk delete completed jobs successful");
+        } catch (err) {
+          showMsg("Failed to perform bulk delete");
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const handleGenerateInvoices = async (uid = null) => {
@@ -1488,7 +1637,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* ── Tabs ── */}
-        <div className="tab-bar">
+        <div className="tab-bar" ref={tabBarRef}>
           {tabs.map(t => (
             <button
               key={t.key}
@@ -1554,9 +1703,15 @@ export default function AdminDashboardPage() {
                 </label>
 
                 {selectedJobs.length > 0 && !bulkCompleting && (
-                  <button className="btn-danger btn-sm" onClick={() => handleBulkAction("Delete")} disabled={loading}>
-                    <Trash2 size={14} /> Bulk Delete
-                  </button>
+                  <>
+                    <button className="btn-primary btn-sm" onClick={handleBulkDownload} disabled={loading || bulkDownloading}>
+                      {bulkDownloading ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
+                      {bulkDownloading ? `Downloading ${bulkDownloadProgress}%` : "Bulk Download"}
+                    </button>
+                    <button className="btn-danger btn-sm" onClick={() => handleBulkAction("Delete")} disabled={loading}>
+                      <Trash2 size={14} /> Bulk Delete
+                    </button>
+                  </>
                 )}
                 
                 {bulkCompleting && bulkCompleteProgress && (
@@ -1569,6 +1724,18 @@ export default function AdminDashboardPage() {
                     </div>
                     <div style={{ width: "100%", height: "6px", background: "var(--border-light)", borderRadius: "3px", overflow: "hidden" }}>
                       <div style={{ width: `${bulkCompleteProgress.percent || 0}%`, height: "100%", background: "var(--primary)", transition: "width 0.1s ease" }}></div>
+                    </div>
+                  </div>
+                )}
+
+                {bulkDownloading && bulkDownloadProgress !== null && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: "200px", maxWidth: "300px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                      <span>Downloading Zip...</span>
+                      <span>{bulkDownloadProgress}%</span>
+                    </div>
+                    <div style={{ width: "100%", height: "6px", background: "var(--border-light)", borderRadius: "3px", overflow: "hidden" }}>
+                      <div style={{ width: `${bulkDownloadProgress}%`, height: "100%", background: "var(--primary)", transition: "width 0.1s ease" }}></div>
                     </div>
                   </div>
                 )}
@@ -1759,7 +1926,6 @@ export default function AdminDashboardPage() {
                     <th>Status</th>
                     <th>Received</th>
                     <th>Upload Time</th>
-                    <th>Priority</th>
                     <th>Upload File</th>
                     <th>Completed File</th>
                     <th>Actions</th>
@@ -1804,13 +1970,9 @@ export default function AdminDashboardPage() {
                       </td>
                       <td style={{ fontSize: ".82rem" }}>{j.upload_time ? new Date(j.upload_time).toLocaleString('en-GB') : "-"}</td>
                       <td>
-                        <input type="number" className="small-input" defaultValue={j.priority}
-                          onBlur={e => updatePriority(j.id, e.target.value)} />
-                      </td>
-                      <td>
                         {j.upload_available ? (
                           <button className="btn-primary btn-sm"
-                            onClick={() => downloadFile(`/admin/jobs/${j.id}/upload`, j.upload_filename || `upload_${j.id}`)}>
+                            onClick={() => downloadFile(`/admin/jobs/${j.id}/upload`, j.upload_filename || `upload_${j.id}`, j.id)}>
                             <Download size={13} /> {j.upload_filename || "File"}
                           </button>
                         ) : <span className="muted">—</span>}
@@ -1844,9 +2006,31 @@ export default function AdminDashboardPage() {
                                 }} />
                             </label>
                           )}
-                          <button className="btn-danger btn-sm" onClick={() => handleDeleteJob(j.id)} title="Delete Job">
-                            <Trash2 size={13} />
-                          </button>
+                          {j.upload_available && (
+                            <button 
+                              className={`btn-sm ${j.downloaded ? "btn-secondary" : "btn-primary"}`}
+                              style={{ 
+                                display: "inline-flex", 
+                                alignItems: "center", 
+                                gap: "4px",
+                                opacity: downloadingSingleId === j.id ? 0.6 : 1
+                              }}
+                              onClick={() => downloadFile(`/admin/jobs/${j.id}/upload`, j.upload_filename || `upload_${j.id}`, j.id)} 
+                              title="Download Client Uploaded File"
+                              disabled={downloadingSingleId === j.id}
+                            >
+                              {downloadingSingleId === j.id ? (
+                                <Loader2 size={13} className="spin" />
+                              ) : (
+                                <Download size={13} />
+                              )}
+                              {downloadingSingleId === j.id ? (
+                                <span>{singleDownloadProgress}%</span>
+                              ) : (
+                                <span>{j.downloaded ? "Downloaded" : "Download"}</span>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -3441,7 +3625,17 @@ export default function AdminDashboardPage() {
                 <div className="panel-icon green"><CheckCircle2 size={18} /></div>
                 <h3>Completed Files</h3>
               </div>
-              <span className="panel-badge green">{filteredCompletedJobs.length}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {selectedCompletedJobs.length > 0 && (
+                  <>
+                    <span className="muted" style={{ fontSize: "0.88rem" }}>{selectedCompletedJobs.length} selected</span>
+                    <button className="btn-danger btn-sm" onClick={handleBulkDeleteCompleted} disabled={loading}>
+                      <Trash2 size={14} /> Bulk Delete
+                    </button>
+                  </>
+                )}
+                <span className="panel-badge green">{filteredCompletedJobs.length}</span>
+              </div>
             </div>
 
             {/* Filters */}
@@ -3471,10 +3665,25 @@ export default function AdminDashboardPage() {
               <table>
                 <thead>
                   <tr>
+                    <th style={{ width: 40 }}>
+                      <div 
+                        className={`custom-checkbox ${selectedCompletedJobs.length > 0 && selectedCompletedJobs.length === filteredCompletedJobs.length ? 'checked' : ''}`}
+                        onClick={() => {
+                          if (selectedCompletedJobs.length > 0 && selectedCompletedJobs.length === filteredCompletedJobs.length) {
+                            setSelectedCompletedJobs([]);
+                          } else {
+                            setSelectedCompletedJobs(filteredCompletedJobs.map(job => job.id));
+                          }
+                        }}
+                      >
+                        <Check size={12} strokeWidth={3} />
+                      </div>
+                    </th>
                     <th>User</th>
                     <th>Stone ID</th>
                     <th>Weight</th>
                     <th>Price/Ct</th>
+                    <th>Total Price</th>
                     <th>Status</th>
                     <th>Received</th>
                     <th>Upload Time</th>
@@ -3486,13 +3695,28 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {filteredCompletedJobs.length ? filteredCompletedJobs.map(j => (
-                    <tr key={j.id}>
+                    <tr key={j.id} className={selectedCompletedJobs.includes(j.id) ? "selected-row" : ""}>
+                      <td>
+                        <div 
+                          className={`custom-checkbox ${selectedCompletedJobs.includes(j.id) ? 'checked' : ''}`}
+                          onClick={() => {
+                            if (selectedCompletedJobs.includes(j.id)) {
+                              setSelectedCompletedJobs(selectedCompletedJobs.filter(id => id !== j.id));
+                            } else {
+                              setSelectedCompletedJobs([...selectedCompletedJobs, j.id]);
+                            }
+                          }}
+                        >
+                          <Check size={12} strokeWidth={3} />
+                        </div>
+                      </td>
                       <td><strong>{j.user}</strong></td>
                       <td>
                         <span style={{ fontWeight: 600, color: "var(--primary)" }}>{j.stone_id}</span>
                       </td>
                       <td>{j.weight || "-"}</td>
                       <td>₹{j.rate_per_carat || 0}</td>
+                      <td style={{ fontWeight: 600 }}>₹{((j.weight || 0) * (j.rate_per_carat || 0)).toFixed(2)}</td>
                       <td><span className="status-badge completed">Completed</span></td>
                       <td>
                         <span className={`status-badge ${j.completed_available ? 'completed' : 'queued'}`}>
@@ -3522,16 +3746,16 @@ export default function AdminDashboardPage() {
                         ) : <span className="muted">—</span>}
                       </td>
                       <td style={{ textAlign: "right" }}>
-                        <div className="btn-group" style={{ display: "inline-flex", justifyContent: "flex-end" }}>
-                          <button className="btn-danger btn-sm" onClick={() => handleDeleteJob(j.id)} title="Delete Job">
-                            <Trash2 size={13} />
+                        <div className="btn-group" style={{ display: "inline-flex", justifyContent: "flex-end", alignItems: "center" }}>
+                          <button className="btn-success btn-sm" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }} onClick={() => openEditCompletedModal(j)} title="Edit Completed Job">
+                            <Edit size={13} /> Edit
                           </button>
                         </div>
                       </td>
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={11}>
+                      <td colSpan={13}>
                         <div className="empty-state"><Package size={28} /><p>No completed files match filters</p></div>
                       </td>
                     </tr>
@@ -4080,6 +4304,80 @@ export default function AdminDashboardPage() {
                 >
                   {editingProfitLoading ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
                   {editingProfitLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ── Edit Completed Job Modal ── */}
+      {showEditCompletedModal && editingCompletedJob && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <div className="panel-title">
+                <Edit size={20} className="text-primary" />
+                <h3>Edit Completed Job</h3>
+              </div>
+              <button onClick={() => setShowEditCompletedModal(false)} className="btn-icon">
+                <XCircle size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveEditCompleted}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Stone ID</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={editingCompletedJob.stone_id}
+                    style={{ opacity: 0.7, cursor: "not-allowed" }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Weight (ct)</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    required
+                    placeholder="Enter weight"
+                    value={editWeight}
+                    onChange={(e) => setEditWeight(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Completed File (Re-upload/Overwrite)</label>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <label 
+                      className="btn-outline btn-sm" 
+                      style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", margin: 0, padding: "8px 12px" }}
+                    >
+                      <Upload size={14} /> Select File
+                      <input 
+                        type="file" 
+                        style={{ display: "none" }} 
+                        onChange={(e) => setEditCompletedFile(e.target.files?.[0] || null)} 
+                      />
+                    </label>
+                    <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "240px" }}>
+                      {editCompletedFile ? editCompletedFile.name : (editingCompletedJob.completed_filename || "No new file chosen")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" onClick={() => setShowEditCompletedModal(false)} className="btn-outline">Cancel</button>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  disabled={editCompletedLoading}
+                >
+                  {editCompletedLoading ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+                  {editCompletedLoading ? "Updating..." : "Save Changes"}
                 </button>
               </div>
             </form>

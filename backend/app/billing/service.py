@@ -1264,6 +1264,34 @@ def sync_user_invoice_for_month(db: Session, user: User, year: int, month: int, 
     if not target:
         return None
 
+    if stones is None:
+        from app.services.pricing_service import get_price_for_weight
+        _, last_day = calendar.monthrange(year, month)
+        start_date = datetime(year, month, 1)
+        end_date = datetime(year, month, last_day, 23, 59, 59, 999999)
+        
+        jobs = (
+            db.query(Job)
+            .filter(
+                Job.user_id == user.id,
+                Job.status == JobStatus.completed,
+                Job.completed_at >= start_date,
+                Job.completed_at <= end_date
+            )
+            .order_by(Job.completed_at.asc(), Job.id.asc())
+            .all()
+        )
+        stones = []
+        for j in jobs:
+            rate = j.rate_per_carat if j.rate_per_carat is not None else get_price_for_weight(db, float(j.weight), float(user.rate_per_carat), at_time=j.created_at, user_id=user.id)
+            stones.append({
+                "stone_id": j.stone_id,
+                "weight": float(j.weight),
+                "completed_at": j.completed_at.strftime("%d/%m/%Y") if j.completed_at else "",
+                "rate_per_carat": float(rate),
+                "amount": round(float(j.weight) * float(rate), 2),
+            })
+
     create_invoice_pdf(output_path, target, stones, db)
     return upsert_invoice(db, user, f"{year:04d}-{month:02d}", target, str(output_path))
 

@@ -23,7 +23,7 @@ from app.models.invoice import Invoice
 from app.models.price_config import PriceConfig
 from app.models.account_profit import AccountProfit
 from app.models.download_token import DownloadToken
-from app.schemas import DashboardStats, SetPriorityRequest, PriceConfigUpdate, UpdateWeightRequest, ApplyRetroactivePricingRequest, AccountProfitCreate, AccountProfitUpdate
+from app.schemas import DashboardStats, SetPriorityRequest, PriceConfigUpdate, UpdateWeightRequest, ApplyRetroactivePricingRequest, AccountProfitCreate, AccountProfitUpdate, BulkDownloadRequest
 from app.services.drive_sync_service import get_drive_sync_status
 from app.services.log_service import log_activity
 from app.services.storage_service import (
@@ -74,7 +74,62 @@ def download_uploaded_file(job_id: int, admin: User = Depends(get_current_admin)
     path = Path(job.upload_path)
     if not path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uploaded file missing on storage")
+    job.downloaded = True
+    job.status = JobStatus.processing
+    db.commit()
     return FileResponse(path=path, filename=path.name)
+
+
+@router.post("/jobs/download-bulk")
+def download_uploaded_bulk(
+    payload: BulkDownloadRequest,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    from zipfile import ZIP_DEFLATED, ZipFile
+    from io import BytesIO
+    _ = admin
+    
+    # Filter only jobs that are NOT downloaded yet and match selected ids
+    jobs = (
+        db.query(Job)
+        .filter(Job.id.in_(payload.job_ids), Job.downloaded == False)
+        .all()
+    )
+    if not jobs:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No new (non-downloaded) uploaded files found for selected jobs")
+
+    zip_buffer = BytesIO()
+    added = 0
+    with ZipFile(zip_buffer, mode="w", compression=ZIP_DEFLATED) as archive:
+        for job in jobs:
+            if not job.upload_path:
+                continue
+            path = Path(job.upload_path)
+            if not path.exists():
+                continue
+            archive.write(path, arcname=path.name)
+            job.downloaded = True
+            job.status = JobStatus.processing
+            added += 1
+
+    if added == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Selected uploaded files are missing on storage")
+
+    db.commit()
+
+    zip_buffer.seek(0)
+    zip_data = zip_buffer.getvalue()
+    timestamp = get_ist_now_naive().strftime("%Y%m%d_%H%M%S")
+    filename = f"uploaded_stones_{timestamp}.zip"
+    
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Content-Length": str(len(zip_data)),
+        "Access-Control-Expose-Headers": "Content-Disposition, Content-Length"
+    }
+    log_activity(db, "admin_bulk_file_download", f"Admin downloaded {added} uploaded files as zip", admin.id)
+    return Response(content=zip_data, media_type="application/zip", headers=headers)
 
 
 @router.get("/jobs/{job_id}/completed")
@@ -184,9 +239,6 @@ def upload_result(
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
-    if job.status == JobStatus.completed:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Job is already completed")
-
     # Save to internal storage (Server's permanent record)
     completed_dir = get_user_folder("completed", job.user_id)
     safe_name = Path(file.filename).name
@@ -264,6 +316,14 @@ def update_weight(payload: UpdateWeightRequest, admin: User = Depends(get_curren
         
     now = get_ist_now_naive()
     db.commit()
+
+    if job.status == JobStatus.completed and owner:
+        completed_at = job.completed_at
+        if completed_at:
+            invoice_dir = get_user_folder("invoices", owner.id)
+            invoice_path = invoice_dir / f"invoice_{completed_at.year:04d}-{completed_at.month:02d}.pdf"
+            sync_user_invoice_for_month(db, owner, completed_at.year, completed_at.month, invoice_path)
+
     log_activity(db, "admin_update_weight", f"Admin {admin.username} updated weight to {payload.weight} and recalculated price for job {job.id} at {now.isoformat()}", admin.id)
     return {"message": "Weight and Price updated", "job_id": job.id, "weight": job.weight, "rate_per_carat": job.rate_per_carat}
 
