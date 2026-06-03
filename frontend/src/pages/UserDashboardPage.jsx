@@ -206,17 +206,8 @@ export default function UserDashboardPage() {
   }, [loadData]);
 
   useEffect(() => {
-    if (activeTab === "report" && profile) {
-      const last = lastLoadedReportParamsRef.current;
-      if (last.profileId !== profile.id) {
-        lastLoadedReportParamsRef.current = { month: reportMonth, year: reportYear, profileId: profile.id };
-        loadStoneReportAndRanges();
-      }
-    } else if (activeTab !== "report") {
-      lastLoadedReportParamsRef.current = { month: null, year: null, profileId: null };
-    }
     localStorage.setItem("clientActiveTab", activeTab);
-  }, [activeTab, profile, loadStoneReportAndRanges]);
+  }, [activeTab]);
 
   const toggleRangeExpand = (rangeStr) => {
     setExpandedRanges(prev => 
