@@ -245,10 +245,11 @@ export default function UserDashboardPage() {
 
   // Stone report totals
   const reportTotals = useMemo(() => {
-    const totalWt = filteredReportStones.reduce((s, r) => s + Number(r.weight), 0);
-    const totalAmt = filteredReportStones.reduce((s, r) => s + Number(r.amount), 0);
-    return { weight: totalWt, amount: totalAmt, count: filteredReportStones.length };
-  }, [filteredReportStones]);
+    const targetStones = (selectedRange === "choose" || selectedRange === "all") ? stoneReport : filteredReportStones;
+    const totalWt = targetStones.reduce((s, r) => s + Number(r.weight), 0);
+    const totalAmt = targetStones.reduce((s, r) => s + Number(r.amount), 0);
+    return { weight: totalWt, amount: totalAmt, count: targetStones.length };
+  }, [stoneReport, filteredReportStones, selectedRange]);
 
   // Billing totals
   const billingTotals = useMemo(() => {
