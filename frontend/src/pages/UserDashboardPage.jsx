@@ -106,7 +106,7 @@ export default function UserDashboardPage() {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem("clientActiveTab") || "stones"); // stones | report | billing | pay_pending | downloaded_files
   const fileInputRef = useRef(null);
   const msgTimer = useRef(null);
-  const initializedReportRef = useRef(false);
+  const lastLoadedReportParamsRef = useRef({ month: null, year: null, profileId: null });
 
   // Stone report month/year filter
   const now = new Date();
@@ -203,16 +203,17 @@ export default function UserDashboardPage() {
   }, [loadData]);
 
   useEffect(() => {
-    if (activeTab === "report") {
-      if (profile && !initializedReportRef.current) {
-        initializedReportRef.current = true;
+    if (activeTab === "report" && profile) {
+      const last = lastLoadedReportParamsRef.current;
+      if (last.month !== reportMonth || last.year !== reportYear || last.profileId !== profile.id) {
+        lastLoadedReportParamsRef.current = { month: reportMonth, year: reportYear, profileId: profile.id };
         loadStoneReportAndRanges();
       }
-    } else {
-      initializedReportRef.current = false;
+    } else if (activeTab !== "report") {
+      lastLoadedReportParamsRef.current = { month: null, year: null, profileId: null };
     }
     localStorage.setItem("clientActiveTab", activeTab);
-  }, [activeTab, profile, loadStoneReportAndRanges]);
+  }, [activeTab, profile, reportMonth, reportYear, loadStoneReportAndRanges]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
@@ -957,11 +958,6 @@ export default function UserDashboardPage() {
                     />
                   </div>
                 )}
-              </div>
-              <div className="generate-btn-wrapper">
-                <button className="btn-primary btn-sm" onClick={loadStoneReportAndRanges}>
-                  <Filter size={14} /> Load Report
-                </button>
               </div>
             </div>
 
