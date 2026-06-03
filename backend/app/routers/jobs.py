@@ -4,9 +4,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
+
 
 from app.config import get_settings
 from app.database import get_db
@@ -29,6 +30,49 @@ def _as_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def _get_job_completed_path(job: Job) -> Path | None:
+    # 1. Try primary path in database
+    if job.completed_path:
+        path = Path(job.completed_path)
+        if path.exists():
+            return path
+            
+    # 2. Search in ALL user folders within drive_sync (stone and done) for a match
+    from app.config import get_settings
+    settings = get_settings()
+    sync_root = settings.drive_sync_root
+    
+    filename_to_match = job.upload_filename or f"{job.stone_id}"
+    print(f"DEBUG: Starting global search for file matching: {filename_to_match}")
+    
+    # Iterate through all subfolders in drive_sync (one for each user/company)
+    if sync_root.exists():
+        for user_folder in sync_root.iterdir():
+            if not user_folder.is_dir(): continue
+            print(f"DEBUG: Checking user folder: {user_folder.name}")
+            
+            # Check 'stone' and 'done' subfolders
+            for sub in ["stone", "done"]:
+                folder = user_folder / sub
+                if not folder.exists(): continue
+                print(f"DEBUG: Searching in: {folder}")
+                
+                # Try exact filename match
+                target = folder / filename_to_match
+                if target.exists():
+                    print(f"DEBUG: Found EXACT match: {target}")
+                    return target
+                
+                # Try Stone ID match (case-insensitive)
+                for f in folder.iterdir():
+                    if f.is_file() and (f.name.lower() == filename_to_match.lower() or 
+                                        f.name.lower().startswith(job.stone_id.lower())):
+                        print(f"DEBUG: Found PARTIAL/CASE match: {f}")
+                        return f
+    return None
+
 
 
 def _safe_delete_file(path_value: str | None) -> None:
@@ -167,53 +211,9 @@ def download_completed_direct(job_id: int, user: User = Depends(get_current_user
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    # 1. Try primary path in database
-    path = Path(job.completed_path) if job.completed_path else None
-    
-    # 2. Search in ALL user folders within drive_sync (stone and done) for a match
-    if not path or not path.exists():
-        from app.config import get_settings
-        settings = get_settings()
-        sync_root = settings.drive_sync_root
-        
-        filename_to_match = job.upload_filename or f"{job.stone_id}"
-        print(f"DEBUG: Starting global search for file matching: {filename_to_match}")
-        found = False
-        
-        # Iterate through all subfolders in drive_sync (one for each user/company)
-        if sync_root.exists():
-            for user_folder in sync_root.iterdir():
-                if not user_folder.is_dir(): continue
-                print(f"DEBUG: Checking user folder: {user_folder.name}")
-                
-                # Check 'stone' and 'done' subfolders
-                for sub in ["stone", "done"]:
-                    folder = user_folder / sub
-                    if not folder.exists(): continue
-                    print(f"DEBUG: Searching in: {folder}")
-                    
-                    # Try exact filename match
-                    target = folder / filename_to_match
-                    if target.exists():
-                        print(f"DEBUG: Found EXACT match: {target}")
-                        path = target
-                        found = True
-                        break
-                    
-                    # Try Stone ID match (case-insensitive)
-                    for f in folder.iterdir():
-                        if f.is_file() and (f.name.lower() == filename_to_match.lower() or 
-                                            f.name.lower().startswith(job.stone_id.lower())):
-                            print(f"DEBUG: Found PARTIAL/CASE match: {f}")
-                            path = f
-                            found = True
-                            break
-                    if found: break
-                if found: break
-        
-        if not found:
-            print(f"DEBUG: FAILED to find {filename_to_match} anywhere in {sync_root}")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="For File Contact To Admin")
+    path = _get_job_completed_path(job)
+    if not path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="For File Contact To Admin")
 
     log_activity(db, "file_download", f"Downloaded result for job {job.id} from {path.name}", user.id)
     return FileResponse(path=path, filename=path.name)
@@ -237,10 +237,8 @@ def download_completed_bulk(
     added = 0
     with ZipFile(zip_buffer, mode="w", compression=ZIP_DEFLATED) as archive:
         for job in jobs:
-            if not job.completed_path:
-                continue
-            path = Path(job.completed_path)
-            if not path.exists():
+            path = _get_job_completed_path(job)
+            if not path or not path.exists():
                 continue
             archive.write(path, arcname=path.name)
             added += 1
@@ -249,11 +247,17 @@ def download_completed_bulk(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Selected completed files are missing on storage")
 
     zip_buffer.seek(0)
+    zip_data = zip_buffer.getvalue()
     timestamp = get_ist_now_naive().strftime("%Y%m%d_%H%M%S")
     filename = f"completed_stones_{timestamp}.zip"
-    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Content-Length": str(len(zip_data)),
+        "Access-Control-Expose-Headers": "Content-Disposition, Content-Length"
+    }
     log_activity(db, "bulk_file_download", f"Downloaded {added} completed files as zip", user.id)
-    return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
+    return Response(content=zip_data, media_type="application/zip", headers=headers)
 
 
 @router.get("/download/{token}")
@@ -264,11 +268,11 @@ def download_file(token: str, user: User = Depends(get_current_user), db: Sessio
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Download link is invalid or expired")
 
     job = db.query(Job).filter(Job.id == row.job_id, Job.user_id == user.id).first()
-    if not job or not job.completed_path:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File does not exist")
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
-    path = Path(job.completed_path)
-    if not path.exists():
+    path = _get_job_completed_path(job)
+    if not path:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File missing on storage")
 
     log_activity(db, "file_download", f"Downloaded result for job {job.id}", user.id)

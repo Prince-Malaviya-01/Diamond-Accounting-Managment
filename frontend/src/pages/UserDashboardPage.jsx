@@ -79,6 +79,8 @@ export default function UserDashboardPage() {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
+  const [downloadingBulk, setDownloadingBulk] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(null);
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem("clientActiveTab") || "stones"); // stones | report | billing | pay_pending
   const fileInputRef = useRef(null);
   const msgTimer = useRef(null);
@@ -405,12 +407,36 @@ export default function UserDashboardPage() {
 
   const downloadSelected = async () => {
     if (!selectedIds.length) { showMsg("Select stones first"); return; }
+    setDownloadingBulk(true);
+    setDownloadProgress(0);
     try {
-      showMsg("Downloading...");
-      const res = await api.post("/jobs/download-bulk", { job_ids: selectedIds }, { responseType: "blob" });
+      showMsg("Preparing download...");
+      const res = await api.post(
+        "/jobs/download-bulk",
+        { job_ids: selectedIds },
+        {
+          responseType: "blob",
+          onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setDownloadProgress(percentCompleted);
+            } else {
+              setDownloadProgress(null);
+            }
+          }
+        }
+      );
+      showMsg("Saving files...");
       await downloadFile(res.data, "completed_stones.zip");
       showMsg("✓ Bulk download saved to D:\\Online\\");
-    } catch { showMsg("Bulk download failed"); }
+      setSelectedIds([]);
+    } catch (err) {
+      console.error(err);
+      showMsg("Bulk download failed");
+    } finally {
+      setDownloadingBulk(false);
+      setDownloadProgress(null);
+    }
   };
 
   const deleteSelected = async () => {
@@ -659,15 +685,32 @@ export default function UserDashboardPage() {
               <span className="panel-badge green">{completed.length}</span>
             </div>
 
-            <div className="bulk-action-grid" style={{ marginBottom: 12 }}>
-              <button className="btn-ghost btn-sm" onClick={selectAll}>Select All</button>
-              <button className="btn-ghost btn-sm" onClick={clearSelection}>Clear</button>
-              <button className="btn-primary btn-sm" onClick={downloadSelected} disabled={!selectedIds.length}>
-                <Download size={14} /> Download ({selectedIds.length})
-              </button>
-              <button className="btn-danger btn-sm" onClick={deleteSelected} disabled={!selectedIds.length}>
-                <Trash2 size={14} /> Delete ({selectedIds.length})
-              </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+              <div className="bulk-action-grid" style={{ marginBottom: 0, display: "flex", gap: 8 }}>
+                <button className="btn-ghost btn-sm" onClick={selectAll} disabled={downloadingBulk}>Select All</button>
+                <button className="btn-ghost btn-sm" onClick={clearSelection} disabled={downloadingBulk}>Clear</button>
+                <button className="btn-primary btn-sm" onClick={downloadSelected} disabled={!selectedIds.length || downloadingBulk}>
+                  {downloadingBulk ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
+                  {downloadingBulk
+                    ? (downloadProgress !== null ? `Downloading ${downloadProgress}%` : "Downloading...")
+                    : `Download (${selectedIds.length})`}
+                </button>
+                <button className="btn-danger btn-sm" onClick={deleteSelected} disabled={!selectedIds.length || downloadingBulk}>
+                  <Trash2 size={14} /> Delete ({selectedIds.length})
+                </button>
+              </div>
+              
+              {downloadingBulk && downloadProgress !== null && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: "200px", maxWidth: "300px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                    <span>Downloading ZIP file</span>
+                    <span>{downloadProgress}%</span>
+                  </div>
+                  <div style={{ width: "100%", height: "6px", background: "var(--border-light)", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ width: `${downloadProgress}%`, height: "100%", background: "var(--primary)", transition: "width 0.1s ease" }}></div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="table-container">
