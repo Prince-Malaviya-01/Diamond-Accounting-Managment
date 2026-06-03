@@ -1625,8 +1625,8 @@ tbody tr:last-child td {
 }
 
 .excel-report-table th {
-  background: #e2efda; /* Soft green */
-  color: #375623;
+  background: rgba(15, 23, 42, 0.05); /* Soft slate gray */
+  color: var(--text-secondary);
   font-weight: 700;
   padding: 12px 16px;
   border: 1px solid var(--border-light);
@@ -1636,8 +1636,8 @@ tbody tr:last-child td {
 }
 
 [data-theme="dark"] .excel-report-table th {
-  background: rgba(55, 86, 35, 0.35);
-  color: #a9d08e;
+  background: rgba(255, 255, 255, 0.06); /* Soft translucent white */
+  color: var(--text);
   border: 1px solid var(--border-light);
 }
 
@@ -1657,16 +1657,16 @@ tbody tr:last-child td {
 }
 
 .excel-report-table tr.total-row td {
-  background: #e2efda; /* Soft green */
-  color: #375623;
+  background: var(--primary-bg); /* Soft primary indigo background */
+  color: var(--primary);
   font-weight: 700;
   border-top: 2px solid var(--border-light);
   border-bottom: 2px solid var(--border-light);
 }
 
 [data-theme="dark"] .excel-report-table tr.total-row td {
-  background: rgba(55, 86, 35, 0.35);
-  color: #a9d08e;
+  background: var(--primary-bg);
+  color: var(--primary-light);
 }
 
 .excel-report-table tr.expanded-row-container td {
