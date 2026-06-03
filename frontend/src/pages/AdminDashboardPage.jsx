@@ -80,6 +80,8 @@ export default function AdminDashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
+  const [completedSearchTerm, setCompletedSearchTerm] = useState("");
+  const [completedUserFilter, setCompletedUserFilter] = useState("all");
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem("adminActiveTab") || "queue");
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1148,8 +1150,13 @@ export default function AdminDashboardPage() {
   }, [jobs]);
   const nonAdminUsers = useMemo(() => users.filter(u => !u.is_admin), [users]);
 
+  const isJobFullyCompleted = useCallback((j) => {
+    return j.status === "Completed" && parseFloat(j.weight) > 0 && j.rate_per_carat !== null && parseFloat(j.rate_per_carat) > 0;
+  }, []);
+
   const filteredJobs = useMemo(() => {
-    let result = jobs;
+    // Keep only jobs that are NOT fully completed (Completed + proper weight & price)
+    let result = jobs.filter(j => !isJobFullyCompleted(j));
 
     // 1. User Filter & Date Restriction
     if (userFilter === "all") {
@@ -1198,7 +1205,54 @@ export default function AdminDashboardPage() {
     }
 
     return result;
-  }, [jobs, statusFilter, userFilter, searchTerm]);
+  }, [jobs, statusFilter, userFilter, searchTerm, isJobFullyCompleted]);
+
+  const filteredCompletedJobs = useMemo(() => {
+    // Keep only jobs that ARE fully completed (Completed + proper weight & price)
+    let result = jobs.filter(j => isJobFullyCompleted(j));
+
+    // 1. User Filter & Date Restriction
+    if (completedUserFilter === "all") {
+      if (!completedSearchTerm) {
+        // Show completed jobs from today and yesterday when search is empty
+        const now = new Date();
+        const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        cutoff.setHours(0, 0, 0, 0);
+        
+        result = result.filter(j => {
+          if (!j.upload_time) return false;
+          const jobDate = new Date(j.upload_time);
+          return jobDate >= cutoff;
+        });
+      }
+    } else {
+      result = result.filter(j => j.user === completedUserFilter);
+    }
+
+    // 2. Search Filter (user, stone id, price, status, upload time)
+    if (completedSearchTerm) {
+      const term = completedSearchTerm.toLowerCase();
+      result = result.filter(j => {
+        const stoneIdMatch = j.stone_id?.toLowerCase().includes(term);
+        const userMatch = j.user?.toLowerCase().includes(term);
+        const fileMatch = j.upload_filename?.toLowerCase().includes(term);
+        const statusMatch = j.status?.toLowerCase().includes(term);
+        
+        // Price / rate per carat / amount match
+        const rateMatch = j.rate_per_carat !== undefined && String(j.rate_per_carat).toLowerCase().includes(term);
+        const amountMatch = j.amount !== undefined && String(j.amount).toLowerCase().includes(term);
+        const priceMatch = rateMatch || amountMatch;
+        
+        // Upload time match
+        const uploadTimeStr = j.upload_time ? new Date(j.upload_time).toLocaleString('en-GB') : "";
+        const timeMatch = uploadTimeStr.toLowerCase().includes(term);
+
+        return stoneIdMatch || userMatch || fileMatch || statusMatch || priceMatch || timeMatch;
+      });
+    }
+
+    return result;
+  }, [jobs, completedUserFilter, completedSearchTerm, isJobFullyCompleted]);
 
   const filteredBackupJobs = useMemo(() => {
     let result = jobs.filter(j => j.status !== "Failed" && j.upload_filename);
@@ -1251,6 +1305,7 @@ export default function AdminDashboardPage() {
     { key: "accounts_profit", label: "Accounts Profit", icon: <TrendingUp size={16} /> },
     { key: "backup_restore", label: "Backup & Restore", icon: <Database size={16} /> },
     { key: "files_backup", label: "Files Backup", icon: <FolderOpen size={16} /> },
+    { key: "completed_files", label: "Completed Files", icon: <CheckCircle2 size={16} /> },
     { key: "logs", label: "System Logs", icon: <Activity size={16} /> },
   ];
 
@@ -3368,6 +3423,115 @@ export default function AdminDashboardPage() {
               </div>
             )}
             
+          </div>
+        )}
+
+        {/* ── Tab: Completed Files ── */}
+        {activeTab === "completed_files" && (
+          <div className="panel" style={{ marginBottom: 0 }}>
+            <div className="panel-header">
+              <div className="panel-title">
+                <div className="panel-icon green"><CheckCircle2 size={18} /></div>
+                <h3>Completed Files</h3>
+              </div>
+              <span className="panel-badge green">{filteredCompletedJobs.length}</span>
+            </div>
+
+            {/* Filters */}
+            <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ position: "relative", flex: 1, minWidth: "250px" }}>
+                <Search size={16} style={{ position: "absolute", left: 10, top: 10, color: "var(--text-light)" }} />
+                <input 
+                  className="search-input"
+                  placeholder="Search stone, user, file..." 
+                  value={completedSearchTerm}
+                  onChange={e => setCompletedSearchTerm(e.target.value)}
+                  style={{ paddingLeft: 34, marginBottom: 0, width: "100%" }} 
+                />
+              </div>
+              <CustomSelect
+                options={[
+                  { label: "All Users", value: "all" },
+                  ...uniqueUsers.map(u => ({ label: u, value: u }))
+                ]}
+                value={completedUserFilter}
+                onChange={setCompletedUserFilter}
+                style={{ flex: "0 0 150px" }}
+              />
+            </div>
+
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Stone ID</th>
+                    <th>Weight</th>
+                    <th>Price/Ct</th>
+                    <th>Status</th>
+                    <th>Received</th>
+                    <th>Upload Time</th>
+                    <th>Completed Time</th>
+                    <th>Upload File</th>
+                    <th>Completed File</th>
+                    <th style={{ textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCompletedJobs.length ? filteredCompletedJobs.map(j => (
+                    <tr key={j.id}>
+                      <td><strong>{j.user}</strong></td>
+                      <td>
+                        <span style={{ fontWeight: 600, color: "var(--primary)" }}>{j.stone_id}</span>
+                      </td>
+                      <td>{j.weight || "-"}</td>
+                      <td>₹{j.rate_per_carat || 0}</td>
+                      <td><span className="status-badge completed">Completed</span></td>
+                      <td>
+                        <span className={`status-badge ${j.completed_available ? 'completed' : 'queued'}`}>
+                          {j.completed_available ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                        {j.upload_time ? new Date(j.upload_time).toLocaleString('en-GB') : "-"}
+                      </td>
+                      <td style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                        {j.completed_at ? new Date(j.completed_at).toLocaleString('en-GB') : "-"}
+                      </td>
+                      <td>
+                        {j.upload_available ? (
+                          <button className="btn-primary btn-sm"
+                            onClick={() => downloadFile(`/admin/jobs/${j.id}/upload`, j.upload_filename || `upload_${j.id}`)}>
+                            <Download size={13} /> {j.upload_filename || "Upload File"}
+                          </button>
+                        ) : <span className="muted">—</span>}
+                      </td>
+                      <td>
+                        {j.completed_available ? (
+                          <button className="btn-success btn-sm"
+                            onClick={() => downloadFile(`/admin/jobs/${j.id}/completed`, j.completed_filename || `completed_${j.id}`)}>
+                            <Download size={13} /> {j.completed_filename || "Completed File"}
+                          </button>
+                        ) : <span className="muted">—</span>}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <div className="btn-group" style={{ display: "inline-flex", justifyContent: "flex-end" }}>
+                          <button className="btn-danger btn-sm" onClick={() => handleDeleteJob(j.id)} title="Delete Job">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={11}>
+                        <div className="empty-state"><Package size={28} /><p>No completed files match filters</p></div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
