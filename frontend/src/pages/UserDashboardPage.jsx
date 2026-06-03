@@ -695,9 +695,6 @@ export default function UserDashboardPage() {
                     ? (downloadProgress !== null ? `Downloading ${downloadProgress}%` : "Downloading...")
                     : `Download (${selectedIds.length})`}
                 </button>
-                <button className="btn-danger btn-sm" onClick={deleteSelected} disabled={!selectedIds.length || downloadingBulk}>
-                  <Trash2 size={14} /> Delete ({selectedIds.length})
-                </button>
               </div>
               
               {downloadingBulk && downloadProgress !== null && (
@@ -737,14 +734,9 @@ export default function UserDashboardPage() {
                       <td style={{ color: "var(--text-light)", fontSize: ".85rem" }}>{job.completed_filename || "-"}</td>
                       <td style={{ fontSize: ".85rem" }}>{job.completed_at ? new Date(job.completed_at).toLocaleString('en-GB') : "-"}</td>
                       <td>
-                        <div className="btn-group">
-                          <button className="btn-primary btn-sm" onClick={() => requestDownload(job)} title="Download">
-                            <Download size={14} />
-                          </button>
-                          <button className="btn-danger btn-sm" onClick={() => deleteJob(job)} title="Delete">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        <button className="btn-primary btn-sm" onClick={() => requestDownload(job)} title="Download">
+                          <Download size={14} /> Download
+                        </button>
                       </td>
                     </tr>
                   )) : (
@@ -767,51 +759,30 @@ export default function UserDashboardPage() {
               <span className="panel-badge orange">{activeJobs.length}</span>
             </div>
 
-            <div className="bulk-action-grid" style={{ marginBottom: 12 }}>
-              <button className="btn-ghost btn-sm" onClick={selectAllActive}>Select All</button>
-              <button className="btn-ghost btn-sm" onClick={clearSelectionActive}>Clear</button>
-              <button className="btn-danger btn-sm full-row" onClick={deleteSelectedActive} disabled={!selectedActiveIds.length}>
-                <Trash2 size={14} /> Delete ({selectedActiveIds.length})
-              </button>
-            </div>
-
             <div className="table-container">
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: 40 }}>
-                      <SelectionBox 
-                        checked={selectedActiveIds.length === activeJobs.length && activeJobs.length > 0}
-                        onChange={() => selectedActiveIds.length === activeJobs.length ? clearSelectionActive() : selectAllActive()} 
-                      />
-                    </th>
                     <th>Stone ID</th>
                     <th>Weight</th>
                     <th>Status</th>
                     <th>File</th>
                     <th>Created</th>
                     <th>Processing Since</th>
-                    <th style={{ width: 70 }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredActive.length ? filteredActive.map((job) => (
-                    <tr key={job.id} className={selectedActiveIds.includes(job.id) ? "selected-row" : ""}>
-                      <td><SelectionBox checked={selectedActiveIds.includes(job.id)} onChange={() => toggleSelectActive(job.id)} /></td>
+                    <tr key={job.id}>
                       <td><strong>{job.stone_id}</strong></td>
                       <td>{job.weight || "-"}</td>
                       <td><StatusBadge status={job.status} /></td>
                       <td style={{ color: "var(--text-light)", fontSize: ".85rem" }}>{job.upload_filename || "-"}</td>
                       <td style={{ fontSize: ".85rem" }}>{job.created_at ? new Date(job.created_at).toLocaleString('en-GB') : "-"}</td>
                       <td style={{ fontSize: ".85rem" }}>{job.processing_started_at ? new Date(job.processing_started_at).toLocaleString('en-GB') : "-"}</td>
-                      <td>
-                        <button className="btn-danger btn-sm" onClick={() => deleteJob(job)} title="Delete">
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={8}>
+                    <tr><td colSpan={6}>
                       <div className="empty-state"><Package size={32} /><p>No active stones</p></div>
                     </td></tr>
                   )}

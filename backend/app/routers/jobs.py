@@ -181,11 +181,9 @@ def create_download_link(job_id: int, user: User = Depends(get_current_user), db
 
 @router.delete("/{job_id}")
 def delete_job(job_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if user.is_admin:
-        job = db.query(Job).filter(Job.id == job_id).first()
-    else:
-        job = db.query(Job).filter(Job.id == job_id, Job.user_id == user.id).first()
-        
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can delete jobs")
+    job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
