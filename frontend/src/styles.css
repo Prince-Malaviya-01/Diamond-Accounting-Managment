@@ -1697,6 +1697,14 @@ tbody tr:last-child td {
   opacity: 1;
 }
 
+/* ── Report Summary Cards ────────────────────────────────── */
+
+.report-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
 .report-stat {
   background: var(--bg-stat);
   border: 1px solid var(--border);
