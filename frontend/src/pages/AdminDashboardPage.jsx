@@ -725,10 +725,14 @@ export default function AdminDashboardPage() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     
-    // Filter selected jobs to find only those in "Processing" status
-    const processingJobs = jobs.filter(j => selectedJobs.includes(j.id) && j.status === "Processing");
-    if (!processingJobs.length) {
-      showMsg("No 'Processing' jobs are selected");
+    // Filter jobs: if selectedJobs has items, filter by selectedJobs. Otherwise, match across all active jobs.
+    const activeJobs = jobs.filter(j => 
+      (selectedJobs.length === 0 || selectedJobs.includes(j.id)) && 
+      (j.status === "Processing" || j.status === "Uploaded" || j.status === "Queued")
+    );
+    
+    if (!activeJobs.length) {
+      showMsg("No active (Processing, Uploaded, or Queued) jobs match files");
       e.target.value = "";
       return;
     }
@@ -753,8 +757,8 @@ export default function AdminDashboardPage() {
         const dotIdx = filename.lastIndexOf('.');
         const stem = dotIdx !== -1 ? filename.substring(0, dotIdx).trim().toLowerCase() : filename.trim().toLowerCase();
         
-        // Find if there is a selected job in "Processing" status matching this stone ID stem
-        const matchingJob = processingJobs.find(j => {
+        // Find if there is a matching active job in the system matching this stone ID stem
+        const matchingJob = activeJobs.find(j => {
           const jobStoneId = j.stone_id.trim().toLowerCase();
           let cleanStem = stem;
           if (cleanStem.endsWith('a')) {
@@ -1455,57 +1459,60 @@ export default function AdminDashboardPage() {
                         <Play size={14} /> Bulk Process
                       </button>
                     )}
-                    <label 
-                      className={`btn-primary btn-sm ${bulkCompleting ? "disabled" : ""}`} 
-                      style={{ 
-                        cursor: bulkCompleting ? "not-allowed" : "pointer", 
-                        display: "inline-flex", 
-                        alignItems: "center", 
-                        gap: "6px", 
-                        margin: 0, 
-                        padding: "6px 12px", 
-                        borderRadius: "6px", 
-                        fontSize: "0.82rem",
-                        opacity: bulkCompleting ? 0.6 : 1
-                      }} 
-                      title="Bulk Complete"
-                    >
-                      {bulkCompleting ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-                      {bulkCompleting 
-                        ? (bulkCompleteProgress 
-                            ? `Uploading ${bulkCompleteProgress.current}/${bulkCompleteProgress.total}` 
-                            : "Completing...")
-                        : "Bulk Complete"}
-                      {!bulkCompleting && (
-                        <input 
-                          type="file" 
-                          multiple 
-                          style={{ display: "none" }} 
-                          onChange={handleBulkCompleteUpload} 
-                          disabled={loading}
-                        />
-                      )}
-                    </label>
-                    {!bulkCompleting && (
-                      <button className="btn-danger btn-sm" onClick={() => handleBulkAction("Delete")} disabled={loading}>
-                        <Trash2 size={14} /> Bulk Delete
-                      </button>
-                    )}
-                    
-                    {bulkCompleting && bulkCompleteProgress && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: "200px", maxWidth: "300px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                          <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "180px" }} title={bulkCompleteProgress.filename}>
-                            File: {bulkCompleteProgress.filename}
-                          </span>
-                          <span>{bulkCompleteProgress.percent || 0}%</span>
-                        </div>
-                        <div style={{ width: "100%", height: "6px", background: "var(--border-light)", borderRadius: "3px", overflow: "hidden" }}>
-                          <div style={{ width: `${bulkCompleteProgress.percent || 0}%`, height: "100%", background: "var(--primary)", transition: "width 0.1s ease" }}></div>
-                        </div>
-                      </div>
-                    )}
                   </>
+                )}
+                
+                {/* Always show Bulk Complete / Upload Results button */}
+                <label 
+                  className={`btn-primary btn-sm ${bulkCompleting ? "disabled" : ""}`} 
+                  style={{ 
+                    cursor: bulkCompleting ? "not-allowed" : "pointer", 
+                    display: "inline-flex", 
+                    alignItems: "center", 
+                    gap: "6px", 
+                    margin: 0, 
+                    padding: "6px 12px", 
+                    borderRadius: "6px", 
+                    fontSize: "0.82rem",
+                    opacity: bulkCompleting ? 0.6 : 1
+                  }} 
+                  title="Bulk Complete"
+                >
+                  {bulkCompleting ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+                  {bulkCompleting 
+                    ? (bulkCompleteProgress 
+                        ? `Uploading ${bulkCompleteProgress.current}/${bulkCompleteProgress.total}` 
+                        : "Completing...")
+                    : (selectedJobs.length > 0 ? "Bulk Complete" : "Bulk Upload Results")}
+                  {!bulkCompleting && (
+                    <input 
+                      type="file" 
+                      multiple 
+                      style={{ display: "none" }} 
+                      onChange={handleBulkCompleteUpload} 
+                      disabled={loading}
+                    />
+                  )}
+                </label>
+
+                {selectedJobs.length > 0 && !bulkCompleting && (
+                  <button className="btn-danger btn-sm" onClick={() => handleBulkAction("Delete")} disabled={loading}>
+                    <Trash2 size={14} /> Bulk Delete
+                  </button>
+                )}
+                
+                {bulkCompleting && bulkCompleteProgress && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: "200px", maxWidth: "300px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                      <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "180px" }} title={bulkCompleteProgress.filename}>
+                        File: {bulkCompleteProgress.filename}
+                      </span>
+                      <span>{bulkCompleteProgress.percent || 0}%</span>
+                    </div>
+                    <div style={{ width: "100%", height: "6px", background: "var(--border-light)", borderRadius: "3px", overflow: "hidden" }}>
+                      <div style={{ width: `${bulkCompleteProgress.percent || 0}%`, height: "100%", background: "var(--primary)", transition: "width 0.1s ease" }}></div>
+                    </div>
+                  </div>
                 )}
                 <span className="panel-badge blue">{filteredJobs.length} / {jobs.length}</span>
               </div>
@@ -1765,11 +1772,18 @@ export default function AdminDashboardPage() {
                               <Play size={13} />
                             </button>
                           )}
-                          {j.status === "Processing" && (
+                           {(j.status === "Processing" || j.status === "Uploaded" || j.status === "Queued") && (
                             <label className="btn-success btn-sm" style={{ cursor: "pointer", marginBottom: 0 }} title="Upload Result">
                               <Upload size={13} /> Result
-                              <input type="file" style={{ display: "none" }}
-                                onChange={e => { const f = e.target.files?.[0]; if (f) uploadResult(j.id, f); }} />
+                              <input type="file" multiple style={{ display: "none" }}
+                                onChange={e => { 
+                                  const files = Array.from(e.target.files || []);
+                                  if (files.length === 1) {
+                                    uploadResult(j.id, files[0]);
+                                  } else if (files.length > 1) {
+                                    handleBulkCompleteUpload(e);
+                                  }
+                                }} />
                             </label>
                           )}
                           <button className="btn-danger btn-sm" onClick={() => handleDeleteJob(j.id)} title="Delete Job">

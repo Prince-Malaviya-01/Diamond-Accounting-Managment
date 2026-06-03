@@ -183,8 +183,8 @@ def upload_result(
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
-    if job.status != JobStatus.processing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Job must be in Processing status to upload result")
+    if job.status == JobStatus.completed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Job is already completed")
 
     # Save to internal storage (Server's permanent record)
     completed_dir = get_user_folder("completed", job.user_id)
