@@ -629,6 +629,8 @@ export default function UserDashboardPage() {
     setReportConfig(prev => ({
       ...prev,
       month: month,
+      format: "PDF",
+      type: "SUMMARY",
       filter: "MONTH"
     }));
     setShowReportModal(true);
@@ -1263,18 +1265,18 @@ export default function UserDashboardPage() {
                 Generating report for <strong>{reportConfig.month}</strong>
               </p>
 
-               <div className="form-group">
+                <div className="form-group">
                 <label>File Format</label>
                 <div className="btn-group" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <button 
                     className={`btn ${reportConfig.format === "PDF" ? "btn-primary" : "btn-outline"}`}
-                    onClick={() => setReportConfig(p => ({ ...p, format: "PDF", filter: "MONTH", type: "FULL" }))}
+                    onClick={() => setReportConfig(p => ({ ...p, format: "PDF", filter: "MONTH", type: "SUMMARY" }))}
                   >
                     <FileText size={16} /> PDF
                   </button>
                   <button 
                     className={`btn ${reportConfig.format === "EXCEL" ? "btn-success" : "btn-outline"}`}
-                    onClick={() => setReportConfig(p => ({ ...p, format: "EXCEL" }))}
+                    onClick={() => setReportConfig(p => ({ ...p, format: "EXCEL", type: "SUMMARY" }))}
                   >
                     <FileSpreadsheet size={16} /> Excel
                   </button>
@@ -1300,9 +1302,8 @@ export default function UserDashboardPage() {
                 ) : (
                   <CustomSelect 
                     options={[
-                      { label: "Full Report", value: "FULL" },
-                      { label: "Carat Vise Full Report", value: "CARAT" },
-                      ...availableRanges.map(r => ({ label: r.range, value: `RANGE:${r.id}` }))
+                      { label: "Summary Report", value: "SUMMARY" },
+                      { label: "Full Report", value: "FULL_SHEETS" }
                     ]}
                     value={reportConfig.type}
                     onChange={(val) => setReportConfig(p => ({ ...p, type: val }))}

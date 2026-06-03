@@ -15,6 +15,23 @@ from app.models.user import User
 from app.utils.time import get_ist_now_naive
 
 
+def is_weight_in_range_helper(weight: float, range_str: str) -> bool:
+    import re
+    wr = range_str.upper()
+    try:
+        if "TO" in wr:
+            parts = wr.split("TO")
+            v1 = float(re.sub(r"[^0-9.]", "", parts[0]))
+            v2 = float(re.sub(r"[^0-9.]", "", parts[1]))
+            return v1 <= round(weight, 2) <= v2
+        elif "UP" in wr:
+            v = float(re.sub(r"[^0-9.]", "", wr.replace("UP", "")))
+            return round(weight, 2) >= v
+    except:
+        pass
+    return False
+
+
 def generate_monthly_summary(db: Session, year: int, month: int) -> list[dict]:
     """Helper to get aggregate stats per user for a specific month."""
     from app.services.pricing_service import get_price_for_weight
@@ -149,6 +166,420 @@ def create_invoice_excel(output_path: Path, data: dict, stones: list[dict] | Non
         # Protect
         worksheet.protection.sheet = True
         worksheet.protection.password = 'diamond'
+
+
+def create_summary_excel(output_path: Path, data: dict, stones: list[dict], db: Session) -> None:
+    from app.models.price_config import PriceConfig
+    from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+    
+    # 1. Fetch ranges
+    user_id = data.get("user_id")
+    configs = []
+    if db and user_id:
+        configs = db.query(PriceConfig).filter(PriceConfig.user_id == user_id, PriceConfig.valid_to == None).order_by(PriceConfig.sort_order).all()
+        if not configs:
+            configs = db.query(PriceConfig).filter(PriceConfig.user_id == None, PriceConfig.valid_to == None).order_by(PriceConfig.sort_order).all()
+
+    # 2. Calculate summaries
+    summaries = []
+    grand_pcs = 0
+    grand_carat = 0.0
+    grand_amount = 0.0
+    
+    for cfg in configs:
+        matching_stones = [s for s in (stones or []) if is_weight_in_range_helper(float(s.get("weight", 0.0)), cfg.weight_range)]
+        pcs = len(matching_stones)
+        carat = sum(float(s.get("weight", 0.0)) for s in matching_stones)
+        rate = float(cfg.price_per_carat)
+        amount = carat * rate
+        
+        summaries.append({
+            "Range": cfg.weight_range,
+            "Pcs": pcs,
+            "Carat": round(carat, 2),
+            "Rate": round(rate, 2),
+            "Total Rs": round(amount, 2)
+        })
+        grand_pcs += pcs
+        grand_carat += carat
+        grand_amount += amount
+
+    # 3. Create DataFrame
+    summary_meta = [
+        ["Company Name", data.get("company_name", "")],
+        ["Report Type", "Summary Report"],
+        ["Period", data.get("period_meta", data.get("month", ""))],
+        ["Generated Date", get_ist_now_naive().strftime('%d/%m/%Y')]
+    ]
+    df_meta = pd.DataFrame(summary_meta, columns=["Field", "Value"])
+
+    rows = []
+    for s in summaries:
+        rows.append({
+            "Range": s["Range"],
+            "Pcs": s["Pcs"],
+            "Carat": s["Carat"],
+            "Rate": f"Rs. {s['Rate']:.2f}",
+            "Total Rs": f"Rs. {s['Total Rs']:.2f}"
+        })
+    rows.append({
+        "Range": "TOTAL",
+        "Pcs": grand_pcs,
+        "Carat": round(grand_carat, 2),
+        "Rate": "",
+        "Total Rs": f"Rs. {grand_amount:.2f}"
+    })
+    df_table = pd.DataFrame(rows)
+
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        df_meta.to_excel(writer, sheet_name='Summary', index=False)
+        start_row = len(df_meta) + 3
+        df_table.to_excel(writer, sheet_name='Summary', index=False, startrow=start_row)
+        
+        ws = writer.sheets['Summary']
+        
+        # Style meta
+        for r in range(1, len(df_meta) + 2):
+            ws.cell(row=r, column=1).font = Font(bold=True)
+            ws.cell(row=r, column=1).alignment = Alignment(horizontal='left')
+            ws.cell(row=r, column=2).alignment = Alignment(horizontal='left')
+            
+        header_row = start_row + 1
+        thin_border = Border(
+            left=Side(style='thin', color='CCCCCC'),
+            right=Side(style='thin', color='CCCCCC'),
+            top=Side(style='thin', color='CCCCCC'),
+            bottom=Side(style='thin', color='CCCCCC')
+        )
+        fill_header = PatternFill(start_color='E2EFDA', end_color='E2EFDA', fill_type='solid') # Soft green
+        for col_idx in range(1, 6):
+            cell = ws.cell(row=header_row, column=col_idx)
+            cell.font = Font(bold=True, color='375623')
+            cell.fill = fill_header
+            cell.alignment = Alignment(horizontal='center')
+            cell.border = thin_border
+
+        total_row = header_row + len(summaries) + 1
+        double_bottom = Border(
+            top=Side(style='thin', color='375623'),
+            bottom=Side(style='double', color='375623')
+        )
+        
+        for r in range(header_row + 1, total_row + 1):
+            is_total_r = (r == total_row)
+            for col_idx in range(1, 6):
+                cell = ws.cell(row=r, column=col_idx)
+                if is_total_r:
+                    cell.font = Font(bold=True)
+                    cell.border = double_bottom
+                    if col_idx == 1:
+                        cell.alignment = Alignment(horizontal='left')
+                    else:
+                        cell.alignment = Alignment(horizontal='right')
+                else:
+                    cell.border = thin_border
+                    if col_idx == 1:
+                        cell.alignment = Alignment(horizontal='left')
+                    elif col_idx in [2, 3]:
+                        cell.alignment = Alignment(horizontal='right')
+                    else:
+                        cell.alignment = Alignment(horizontal='right')
+                        
+        for col in ws.columns:
+            max_len = 0
+            col_letter = col[0].column_letter
+            for cell in col:
+                val_str = str(cell.value or "")
+                if len(val_str) > max_len:
+                    max_len = len(val_str)
+            ws.column_dimensions[col_letter].width = max_len + 4
+            
+        ws.protection.sheet = True
+        ws.protection.password = 'diamond'
+
+
+def create_full_sheets_excel(output_path: Path, data: dict, stones: list[dict], db: Session) -> None:
+    from app.models.price_config import PriceConfig
+    from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+    
+    # 1. Fetch ranges
+    user_id = data.get("user_id")
+    configs = []
+    if db and user_id:
+        configs = db.query(PriceConfig).filter(PriceConfig.user_id == user_id, PriceConfig.valid_to == None).order_by(PriceConfig.sort_order).all()
+        if not configs:
+            configs = db.query(PriceConfig).filter(PriceConfig.user_id == None, PriceConfig.valid_to == None).order_by(PriceConfig.sort_order).all()
+
+    # 2. Calculate summaries
+    summaries = []
+    grand_pcs = 0
+    grand_carat = 0.0
+    grand_amount = 0.0
+    
+    for cfg in configs:
+        matching_stones = [s for s in (stones or []) if is_weight_in_range_helper(float(s.get("weight", 0.0)), cfg.weight_range)]
+        pcs = len(matching_stones)
+        carat = sum(float(s.get("weight", 0.0)) for s in matching_stones)
+        rate = float(cfg.price_per_carat)
+        amount = carat * rate
+        
+        summaries.append({
+            "Range": cfg.weight_range,
+            "Pcs": pcs,
+            "Carat": round(carat, 2),
+            "Rate": round(rate, 2),
+            "Total Rs": round(amount, 2),
+            "stones": matching_stones
+        })
+        grand_pcs += pcs
+        grand_carat += carat
+        grand_amount += amount
+
+    thin_border = Border(
+        left=Side(style='thin', color='CCCCCC'),
+        right=Side(style='thin', color='CCCCCC'),
+        top=Side(style='thin', color='CCCCCC'),
+        bottom=Side(style='thin', color='CCCCCC')
+    )
+    fill_header = PatternFill(start_color='E2EFDA', end_color='E2EFDA', fill_type='solid')
+    double_bottom = Border(
+        top=Side(style='thin', color='375623'),
+        bottom=Side(style='double', color='375623')
+    )
+
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        # Sheet 1: Summary
+        summary_meta = [
+            ["Company Name", data.get("company_name", "")],
+            ["Report Type", "Summary Report"],
+            ["Period", data.get("period_meta", data.get("month", ""))],
+            ["Generated Date", get_ist_now_naive().strftime('%d/%m/%Y')]
+        ]
+        df_meta = pd.DataFrame(summary_meta, columns=["Field", "Value"])
+        df_meta.to_excel(writer, sheet_name='Summary', index=False)
+        
+        rows = []
+        for s in summaries:
+            rows.append({
+                "Range": s["Range"],
+                "Pcs": s["Pcs"],
+                "Carat": s["Carat"],
+                "Rate": f"Rs. {s['Rate']:.2f}",
+                "Total Rs": f"Rs. {s['Total Rs']:.2f}"
+            })
+        rows.append({
+            "Range": "TOTAL",
+            "Pcs": grand_pcs,
+            "Carat": round(grand_carat, 2),
+            "Rate": "",
+            "Total Rs": f"Rs. {grand_amount:.2f}"
+        })
+        df_summary_table = pd.DataFrame(rows)
+        start_row_summary = len(df_meta) + 3
+        df_summary_table.to_excel(writer, sheet_name='Summary', index=False, startrow=start_row_summary)
+        
+        ws1 = writer.sheets['Summary']
+        for r in range(1, len(df_meta) + 2):
+            ws1.cell(row=r, column=1).font = Font(bold=True)
+            ws1.cell(row=r, column=1).alignment = Alignment(horizontal='left')
+            ws1.cell(row=r, column=2).alignment = Alignment(horizontal='left')
+            
+        header_row1 = start_row_summary + 1
+        for col_idx in range(1, 6):
+            cell = ws1.cell(row=header_row1, column=col_idx)
+            cell.font = Font(bold=True, color='375623')
+            cell.fill = fill_header
+            cell.alignment = Alignment(horizontal='center')
+            cell.border = thin_border
+            
+        total_row1 = header_row1 + len(summaries) + 1
+        for r in range(header_row1 + 1, total_row1 + 1):
+            is_total_r = (r == total_row1)
+            for col_idx in range(1, 6):
+                cell = ws1.cell(row=r, column=col_idx)
+                if is_total_r:
+                    cell.font = Font(bold=True)
+                    cell.border = double_bottom
+                    if col_idx == 1: cell.alignment = Alignment(horizontal='left')
+                    else: cell.alignment = Alignment(horizontal='right')
+                else:
+                    cell.border = thin_border
+                    if col_idx == 1: cell.alignment = Alignment(horizontal='left')
+                    elif col_idx in [2, 3]: cell.alignment = Alignment(horizontal='right')
+                    else: cell.alignment = Alignment(horizontal='right')
+                    
+        for col in ws1.columns:
+            max_len = 0
+            col_letter = col[0].column_letter
+            for cell in col:
+                val_str = str(cell.value or "")
+                if len(val_str) > max_len: max_len = len(val_str)
+            ws1.column_dimensions[col_letter].width = max_len + 4
+        ws1.protection.sheet = True
+        ws1.protection.password = 'diamond'
+
+        # Sheet 2: All Stones
+        all_meta = [
+            ["Company Name", data.get("company_name", "")],
+            ["Report Type", "Full Report - All Stones"],
+            ["Period", data.get("period_meta", data.get("month", ""))],
+            ["Total Stones", data.get("total_stones", 0)],
+            ["Total Weight", f"{data.get('total_weight', 0.0):.2f} ct"],
+            ["Total Amount", f"Rs. {float(data.get('total_amount', 0.0)):.2f}"],
+            ["Generated Date", get_ist_now_naive().strftime('%d/%m/%Y')]
+        ]
+        df_all_meta = pd.DataFrame(all_meta, columns=["Field", "Value"])
+        df_all_meta.to_excel(writer, sheet_name='All Stones', index=False)
+        
+        all_stones_rows = []
+        for idx, s in enumerate(stones or [], 1):
+            dt = s["completed_at"].strftime('%d/%m/%Y') if hasattr(s["completed_at"], "strftime") else str(s["completed_at"])
+            all_stones_rows.append({
+                "#": idx,
+                "Stone ID": s["stone_id"],
+                "Date": dt,
+                "Weight (ct)": s["weight"],
+                "Rate": f"Rs. {float(s['rate_per_carat']):.2f}",
+                "Amount": f"Rs. {float(s['amount']):.2f}"
+            })
+        all_stones_rows.append({
+            "#": "",
+            "Stone ID": "TOTAL SUMMARY",
+            "Date": "",
+            "Weight (ct)": round(data.get("total_weight", 0.0), 2),
+            "Rate": "",
+            "Amount": f"Rs. {float(data.get('total_amount', 0.0)):.2f}"
+        })
+        df_all_stones = pd.DataFrame(all_stones_rows)
+        start_row_all = len(df_all_meta) + 3
+        df_all_stones.to_excel(writer, sheet_name='All Stones', index=False, startrow=start_row_all)
+        
+        ws2 = writer.sheets['All Stones']
+        for r in range(1, len(df_all_meta) + 2):
+            ws2.cell(row=r, column=1).font = Font(bold=True)
+            ws2.cell(row=r, column=1).alignment = Alignment(horizontal='left')
+            ws2.cell(row=r, column=2).alignment = Alignment(horizontal='left')
+            
+        header_row2 = start_row_all + 1
+        for col_idx in range(1, 7):
+            cell = ws2.cell(row=header_row2, column=col_idx)
+            cell.font = Font(bold=True, color='375623')
+            cell.fill = fill_header
+            cell.alignment = Alignment(horizontal='center')
+            cell.border = thin_border
+            
+        total_row2 = header_row2 + len(stones or []) + 1
+        for r in range(header_row2 + 1, total_row2 + 1):
+            is_total_r = (r == total_row2)
+            for col_idx in range(1, 7):
+                cell = ws2.cell(row=r, column=col_idx)
+                if is_total_r:
+                    cell.font = Font(bold=True)
+                    cell.border = double_bottom
+                    if col_idx == 2: cell.alignment = Alignment(horizontal='left')
+                    else: cell.alignment = Alignment(horizontal='right')
+                else:
+                    cell.border = thin_border
+                    if col_idx in [1, 2]: cell.alignment = Alignment(horizontal='left')
+                    elif col_idx == 3: cell.alignment = Alignment(horizontal='center')
+                    else: cell.alignment = Alignment(horizontal='right')
+                    
+        for col in ws2.columns:
+            max_len = 0
+            col_letter = col[0].column_letter
+            for cell in col:
+                val_str = str(cell.value or "")
+                if len(val_str) > max_len: max_len = len(val_str)
+            ws2.column_dimensions[col_letter].width = max_len + 4
+        ws2.protection.sheet = True
+        ws2.protection.password = 'diamond'
+
+        # Sheets 3+: Range-wise
+        for s_summary in summaries:
+            range_name = s_summary["Range"]
+            sheet_title = range_name.replace(":", "").replace("\\", "").replace("/", "").replace("?", "").replace("*", "").replace("[", "").replace("]", "")
+            if len(sheet_title) > 30:
+                sheet_title = sheet_title[:30]
+                
+            r_stones = s_summary["stones"]
+            r_pcs = s_summary["Pcs"]
+            r_carat = s_summary["Carat"]
+            r_amount = s_summary["Total Rs"]
+            
+            range_meta = [
+                ["Company Name", data.get("company_name", "")],
+                ["Report Type", f"Weight Range Report - {range_name}"],
+                ["Period", data.get("period_meta", data.get("month", ""))],
+                ["Range Stones", r_pcs],
+                ["Range Weight", f"{r_carat:.2f} ct"],
+                ["Range Amount", f"Rs. {r_amount:.2f}"],
+                ["Generated Date", get_ist_now_naive().strftime('%d/%m/%Y')]
+            ]
+            df_range_meta = pd.DataFrame(range_meta, columns=["Field", "Value"])
+            df_range_meta.to_excel(writer, sheet_name=sheet_title, index=False)
+            
+            range_rows = []
+            for idx, st in enumerate(r_stones, 1):
+                dt = st["completed_at"].strftime('%d/%m/%Y') if hasattr(st["completed_at"], "strftime") else str(st["completed_at"])
+                range_rows.append({
+                    "#": idx,
+                    "Stone ID": st["stone_id"],
+                    "Date": dt,
+                    "Weight (ct)": st["weight"],
+                    "Rate": f"Rs. {float(st['rate_per_carat']):.2f}",
+                    "Amount": f"Rs. {float(st['amount']):.2f}"
+                })
+            range_rows.append({
+                "#": "",
+                "Stone ID": f"SUBTOTAL ({range_name})",
+                "Date": "",
+                "Weight (ct)": round(r_carat, 2),
+                "Rate": "",
+                "Amount": f"Rs. {r_amount:.2f}"
+            })
+            df_range_stones = pd.DataFrame(range_rows)
+            start_row_range = len(df_range_meta) + 3
+            df_range_stones.to_excel(writer, sheet_name=sheet_title, index=False, startrow=start_row_range)
+            
+            ws_range = writer.sheets[sheet_title]
+            for r in range(1, len(df_range_meta) + 2):
+                ws_range.cell(row=r, column=1).font = Font(bold=True)
+                ws_range.cell(row=r, column=1).alignment = Alignment(horizontal='left')
+                ws_range.cell(row=r, column=2).alignment = Alignment(horizontal='left')
+                
+            header_row_range = start_row_range + 1
+            for col_idx in range(1, 7):
+                cell = ws_range.cell(row=header_row_range, column=col_idx)
+                cell.font = Font(bold=True, color='375623')
+                cell.fill = fill_header
+                cell.alignment = Alignment(horizontal='center')
+                cell.border = thin_border
+                
+            total_row_range = header_row_range + len(r_stones) + 1
+            for r in range(header_row_range + 1, total_row_range + 1):
+                is_total_r = (r == total_row_range)
+                for col_idx in range(1, 7):
+                    cell = ws_range.cell(row=r, column=col_idx)
+                    if is_total_r:
+                        cell.font = Font(bold=True)
+                        cell.border = double_bottom
+                        if col_idx == 2: cell.alignment = Alignment(horizontal='left')
+                        else: cell.alignment = Alignment(horizontal='right')
+                    else:
+                        cell.border = thin_border
+                        if col_idx in [1, 2]: cell.alignment = Alignment(horizontal='left')
+                        elif col_idx == 3: cell.alignment = Alignment(horizontal='center')
+                        else: cell.alignment = Alignment(horizontal='right')
+                        
+            for col in ws_range.columns:
+                max_len = 0
+                col_letter = col[0].column_letter
+                for cell in col:
+                    val_str = str(cell.value or "")
+                    if len(val_str) > max_len: max_len = len(val_str)
+                ws_range.column_dimensions[col_letter].width = max_len + 4
+            ws_range.protection.sheet = True
+            ws_range.protection.password = 'diamond'
 
 
 def create_invoice_pdf(output_path: Path, data: dict, stones: list[dict] | None = None, db: Session | None = None) -> None:
@@ -551,7 +982,11 @@ def create_custom_report(
     }
 
     if report_format == "EXCEL":
-        if report_type == "CARAT":
+        if report_type == "SUMMARY":
+            create_summary_excel(output_path, summary, stones, db)
+        elif report_type == "FULL_SHEETS":
+            create_full_sheets_excel(output_path, summary, stones, db)
+        elif report_type == "CARAT":
             _create_grouped_excel(output_path, summary, stones, db)
         else:
             create_invoice_excel(output_path, summary, stones, db)
