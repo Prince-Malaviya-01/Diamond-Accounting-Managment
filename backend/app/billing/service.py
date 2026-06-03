@@ -217,10 +217,118 @@ def create_invoice_pdf(output_path: Path, data: dict, stones: list[dict] | None 
         c.drawString(x, box_y - 18, val)
 
     y -= 100
-    cols = [margin + 5, margin + 35, margin + 145, margin + 250, margin + 340, margin + 430]
+    
+    # ── Excel-style range-wise breakdown summary table ──
+    def is_weight_in_range(weight: float, range_str: str) -> bool:
+        import re
+        wr = range_str.upper()
+        try:
+            if "TO" in wr:
+                parts = wr.split("TO")
+                v1 = float(re.sub(r"[^0-9.]", "", parts[0]))
+                v2 = float(re.sub(r"[^0-9.]", "", parts[1]))
+                return v1 <= round(weight, 2) <= v2
+            elif "UP" in wr:
+                v = float(re.sub(r"[^0-9.]", "", wr.replace("UP", "")))
+                return round(weight, 2) >= v
+        except:
+            pass
+        return False
 
-    # ── Stone details table ──
-    if stones:
+    from app.models.price_config import PriceConfig
+    user_id = data.get("user_id")
+    configs = []
+    if db and user_id:
+        configs = db.query(PriceConfig).filter(PriceConfig.user_id == user_id, PriceConfig.valid_to == None).order_by(PriceConfig.sort_order).all()
+        if not configs:
+            configs = db.query(PriceConfig).filter(PriceConfig.user_id == None, PriceConfig.valid_to == None).order_by(PriceConfig.sort_order).all()
+
+    if configs:
+        cols = [margin + 5, margin + 180, margin + 260, margin + 360, right - 5]
+        
+        c.setFont("Helvetica-Bold", 10)
+        c.setFillColor(colors.HexColor("#333333"))
+        c.drawString(cols[0], y, "Range")
+        c.drawRightString(cols[1] + 20, y, "Pcs")
+        c.drawRightString(cols[2] + 30, y, "Carat")
+        c.drawRightString(cols[3] + 20, y, "Rate")
+        c.drawRightString(cols[4], y, "Total Rs")
+        y -= 15
+        
+        c.setStrokeColor(colors.HexColor("#EEEEEE"))
+        c.setLineWidth(0.5)
+        c.line(margin, y+10, right, y+10)
+
+        # Calculate matching summary details for each range
+        summaries = []
+        grand_pcs = 0
+        grand_carat = 0.0
+        grand_amount = 0.0
+        
+        for cfg in configs:
+            matching_stones = [s for s in (stones or []) if is_weight_in_range(float(s.get("weight", 0.0)), cfg.weight_range)]
+            pcs = len(matching_stones)
+            carat = sum(float(s.get("weight", 0.0)) for s in matching_stones)
+            rate = float(cfg.price_per_carat)
+            amount = carat * rate
+            
+            summaries.append({
+                "range": cfg.weight_range,
+                "pcs": pcs,
+                "carat": carat,
+                "rate": rate,
+                "amount": amount
+            })
+            grand_pcs += pcs
+            grand_carat += carat
+            grand_amount += amount
+
+        # Draw range rows
+        c.setFont("Helvetica", 9)
+        c.setFillColor(colors.HexColor("#444444"))
+        for s in summaries:
+            if y < 80:
+                c.showPage()
+                y = h - 50
+                # Redraw headers
+                c.setFont("Helvetica-Bold", 10)
+                c.setFillColor(colors.HexColor("#333333"))
+                c.drawString(cols[0], y, "Range")
+                c.drawRightString(cols[1] + 20, y, "Pcs")
+                c.drawRightString(cols[2] + 30, y, "Carat")
+                c.drawRightString(cols[3] + 20, y, "Rate")
+                c.drawRightString(cols[4], y, "Total Rs")
+                y -= 20
+                c.setFont("Helvetica", 9)
+                c.setFillColor(colors.HexColor("#444444"))
+
+            c.drawString(cols[0], y, s["range"])
+            c.drawRightString(cols[1] + 20, y, str(s["pcs"]))
+            c.drawRightString(cols[2] + 30, y, f"{s['carat']:.2f}")
+            c.drawRightString(cols[3] + 20, y, f"Rs. {s['rate']:.2f}")
+            c.drawRightString(cols[4], y, f"Rs. {s['amount']:.2f}")
+            y -= 18
+
+        # Draw Grand Total Row
+        if y < 100:
+            c.showPage()
+            y = h - 50
+        
+        y -= 10
+        c.setStrokeColor(colors.HexColor("#6C3FE3"))
+        c.setLineWidth(1.5)
+        c.line(margin, y, right, y)
+        y -= 25
+        
+        c.setFillColor(colors.HexColor("#6C3FE3"))
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(cols[0], y, "TOTAL")
+        c.drawRightString(cols[1] + 20, y, str(grand_pcs))
+        c.drawRightString(cols[2] + 30, y, f"{grand_carat:.2f} ct")
+        c.drawRightString(cols[4], y, f"Rs. {grand_amount:.2f}")
+    
+    elif stones:
+        cols = [margin + 5, margin + 35, margin + 145, margin + 250, margin + 340, margin + 430]
         c.setFont("Helvetica-Bold", 10)
         c.setFillColor(colors.HexColor("#333333"))
         c.drawString(cols[0], y, "#")
@@ -417,9 +525,12 @@ def create_custom_report(
         total_a += amt
 
     # 3.5 Meta Info for Locked Header
-    report_meta = "Full Stone Report"
-    if report_type == "CARAT": report_meta = "Carat Wise Summary Report"
-    elif target_range: report_meta = f"Weight Range: {target_range.weight_range}"
+    if report_format == "PDF":
+        report_meta = "Summary Report"
+    else:
+        report_meta = "Full Stone Report"
+        if report_type == "CARAT": report_meta = "Carat Wise Summary Report"
+        elif target_range: report_meta = f"Weight Range: {target_range.weight_range}"
     
     period_meta = f"{month_str}" if filter_type == "MONTH" else f"{filter_type}"
     if filter_type == "DAYS" and filter_dates:

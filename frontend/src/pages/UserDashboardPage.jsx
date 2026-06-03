@@ -946,7 +946,7 @@ export default function UserDashboardPage() {
               </div>
             </div>
             <div className="filter-row billing-controls-row" style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "450px", alignItems: "flex-end" }}>
+              <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "600px", alignItems: "flex-end" }}>
                 <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
                   <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><Calendar size={14} /> Month</label>
                   <CustomSelect
@@ -973,6 +973,15 @@ export default function UserDashboardPage() {
                   disabled={loading}
                 >
                   {loading ? <Loader2 size={16} className="spin" /> : <Eye size={16} />} Show Report
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-primary" 
+                  onClick={() => openReportModal(`${reportYear}-${String(reportMonth).padStart(2, '0')}`)}
+                  style={{ height: "42px", padding: "0 20px", display: "flex", alignItems: "center", gap: "6px" }}
+                  disabled={loading}
+                >
+                  <Download size={16} /> Download Report
                 </button>
               </div>
             </div>
@@ -1085,68 +1094,6 @@ export default function UserDashboardPage() {
                 </div>
               )
             )}
-          </div>
-
-          {/* Invoice History */}
-          <div className="panel" style={{ marginTop: 20 }}>
-            <div className="panel-header">
-              <div className="panel-title">
-                <div className="panel-icon blue"><Receipt size={18} /></div>
-                <h3>Invoice History</h3>
-              </div>
-              <span className="panel-badge blue">{billing.length}</span>
-            </div>
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th style={{ width: 150 }}>Month</th>
-                    <th style={{ width: 100 }}>Stones</th>
-                    <th style={{ width: 120 }}>Weight (ct)</th>
-                    <th style={{ width: 150, textAlign: "right" }}>Amount (₹)</th>
-                    <th style={{ width: 150, textAlign: "center" }}>Generated</th>
-                    <th style={{ width: 180, textAlign: "center" }}>Invoice</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {billing.length ? billing.map((b) => (
-                    <tr key={b.id}>
-                      <td style={{ width: 150 }}><strong>{b.month}</strong></td>
-                      <td style={{ width: 100 }}>{b.total_stones}</td>
-                      <td style={{ width: 120 }}>{Number(b.total_weight).toFixed(2)}</td>
-                      <td style={{ width: 150, textAlign: "right", fontWeight: 600, color: "var(--primary)" }}>₹{Number(b.total_amount).toFixed(2)}</td>
-                      <td style={{ width: 150, textAlign: "center", fontSize: ".85rem" }}>{b.created_at ? new Date(b.created_at).toLocaleDateString('en-GB') : "-"}</td>
-                      <td style={{ width: 180, textAlign: "center" }}>
-                        <div style={{ display: "flex", justifyContent: "center", gap: 5 }}>
-                          <button className="btn-ghost btn-sm" onClick={() => viewInvoice(b.month)} title="Quick View">
-                            <Eye size={13} /> View
-                          </button>
-                          <button className="btn-primary btn-sm" onClick={() => openReportModal(b.month)} title="Download">
-                            <Download size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr><td colSpan={7}>
-                      <div className="empty-state">
-                        <Receipt size={32} />
-                        <p>No invoices generated yet</p>
-                      </div>
-                    </td></tr>
-                  )}
-                  {billing.length > 0 && (
-                    <tr className="total-row">
-                      <td><strong>TOTAL</strong></td>
-                      <td><strong>{billingTotals.stones}</strong></td>
-                      <td><strong>{billingTotals.weight.toFixed(2)}</strong></td>
-                      <td style={{ textAlign: "right" }}><strong>₹{billingTotals.amount.toFixed(2)}</strong></td>
-                      <td colSpan={2}></td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
           </div>
         </>
       )}
@@ -1316,12 +1263,12 @@ export default function UserDashboardPage() {
                 Generating report for <strong>{reportConfig.month}</strong>
               </p>
 
-              <div className="form-group">
+               <div className="form-group">
                 <label>File Format</label>
                 <div className="btn-group" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <button 
                     className={`btn ${reportConfig.format === "PDF" ? "btn-primary" : "btn-outline"}`}
-                    onClick={() => setReportConfig(p => ({ ...p, format: "PDF" }))}
+                    onClick={() => setReportConfig(p => ({ ...p, format: "PDF", filter: "MONTH", type: "FULL" }))}
                   >
                     <FileText size={16} /> PDF
                   </button>
@@ -1336,29 +1283,47 @@ export default function UserDashboardPage() {
 
               <div className="form-group">
                 <label>Report Type</label>
-                <CustomSelect 
-                  options={[
-                    { label: "Full Report", value: "FULL" },
-                    { label: "Carat Vise Full Report", value: "CARAT" },
-                    ...availableRanges.map(r => ({ label: r.range, value: `RANGE:${r.id}` }))
-                  ]}
-                  value={reportConfig.type}
-                  onChange={(val) => setReportConfig(p => ({ ...p, type: val }))}
-                />
+                {reportConfig.format === "PDF" ? (
+                  <div style={{
+                    padding: "10px 14px",
+                    background: "var(--bg-card-hover)",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border-light)",
+                    color: "var(--text)",
+                    fontSize: "0.95rem",
+                    fontWeight: 500,
+                    display: "flex",
+                    alignItems: "center"
+                  }}>
+                    Summary Report
+                  </div>
+                ) : (
+                  <CustomSelect 
+                    options={[
+                      { label: "Full Report", value: "FULL" },
+                      { label: "Carat Vise Full Report", value: "CARAT" },
+                      ...availableRanges.map(r => ({ label: r.range, value: `RANGE:${r.id}` }))
+                    ]}
+                    value={reportConfig.type}
+                    onChange={(val) => setReportConfig(p => ({ ...p, type: val }))}
+                  />
+                )}
               </div>
 
-              <div className="form-group">
-                <label>Date Filter</label>
-                <CustomSelect 
-                  options={[
-                    { label: `Full Month (${reportConfig.month})`, value: "MONTH" },
-                    { label: "Multiple Dates", value: "DAYS" },
-                    { label: "Date Range", value: "RANGE" }
-                  ]}
-                  value={reportConfig.filter}
-                  onChange={(val) => setReportConfig(p => ({ ...p, filter: val }))}
-                />
-              </div>
+              {reportConfig.format !== "PDF" && (
+                <div className="form-group">
+                  <label>Date Filter</label>
+                  <CustomSelect 
+                    options={[
+                      { label: `Full Month (${reportConfig.month})`, value: "MONTH" },
+                      { label: "Multiple Dates", value: "DAYS" },
+                      { label: "Date Range", value: "RANGE" }
+                    ]}
+                    value={reportConfig.filter}
+                    onChange={(val) => setReportConfig(p => ({ ...p, filter: val }))}
+                  />
+                </div>
+              )}
 
               {reportConfig.filter === "DAYS" && (
                 <div className="form-group">
