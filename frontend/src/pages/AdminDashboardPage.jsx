@@ -2209,9 +2209,9 @@ export default function AdminDashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {allInvoices.length ? allInvoices.map((inv) => (
+                      {allInvoices.length ? allInvoices.map((inv, idx) => (
                         <tr key={inv.id}>
-                          <td>{inv.id}</td>
+                          <td>{idx + 1}</td>
                           <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><strong>{inv.company_name}</strong></td>
                           <td>{inv.username}</td>
                           <td><strong>{inv.month}</strong></td>
