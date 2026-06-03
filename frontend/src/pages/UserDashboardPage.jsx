@@ -1017,61 +1017,49 @@ export default function UserDashboardPage() {
             )}
 
             {/* Stone detail table */}
-            <div className="table-container" style={{ marginTop: 16 }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Stone ID</th>
-                    <th>Weight (ct)</th>
-                    <th>Completed On</th>
-                    <th style={{ textAlign: "right" }}>Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedRange === "choose" ? (
-                    <tr><td colSpan={5}>
-                      <div className="empty-state">
-                        <FileSpreadsheet size={32} />
-                        <p>Choose a range to view records</p>
-                      </div>
-                    </td></tr>
-                  ) : !showReportTable ? (
-                    <tr><td colSpan={5}>
-                      <div className="empty-state" style={{ cursor: "pointer" }} onClick={() => setShowReportTable(true)}>
-                        <FileSpreadsheet size={32} />
-                        <p>Click on the summary above to view records</p>
-                      </div>
-                    </td></tr>
-                  ) : filteredReportStones.length ? (
-                    filteredReportStones.map((s, i) => (
-                      <tr key={s.job_id}>
-                        <td>{i + 1}</td>
-                        <td><strong>{s.stone_id}</strong></td>
-                        <td>{Number(s.weight).toFixed(2)}</td>
-                        <td style={{ fontSize: ".85rem" }}>{s.completed_at ? new Date(s.completed_at).toLocaleDateString('en-GB') : "-"}</td>
-                        <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(s.amount).toFixed(2)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr><td colSpan={5}>
-                      <div className="empty-state">
-                        <FileSpreadsheet size={32} />
-                        <p>{`No completed stones found in ${MONTHS[reportMonth]} ${reportYear}`}</p>
-                      </div>
-                    </td></tr>
-                  )}
-                  {showReportTable && filteredReportStones.length > 0 && (
-                    <tr className="total-row">
-                      <td colSpan={2}><strong>TOTAL</strong></td>
-                      <td><strong>{reportTotals.weight.toFixed(2)}</strong></td>
-                      <td><strong>{reportTotals.count} stones</strong></td>
-                      <td style={{ textAlign: "right" }}><strong>₹{reportTotals.amount.toFixed(2)}</strong></td>
+            {showReportTable && (
+              <div className="table-container" style={{ marginTop: 16 }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Stone ID</th>
+                      <th>Weight (ct)</th>
+                      <th>Completed On</th>
+                      <th style={{ textAlign: "right" }}>Amount (₹)</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredReportStones.length ? (
+                      filteredReportStones.map((s, i) => (
+                        <tr key={s.job_id}>
+                          <td>{i + 1}</td>
+                          <td><strong>{s.stone_id}</strong></td>
+                          <td>{Number(s.weight).toFixed(2)}</td>
+                          <td style={{ fontSize: ".85rem" }}>{s.completed_at ? new Date(s.completed_at).toLocaleDateString('en-GB') : "-"}</td>
+                          <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(s.amount).toFixed(2)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={5}>
+                        <div className="empty-state">
+                          <FileSpreadsheet size={32} />
+                          <p>{`No completed stones found in ${MONTHS[reportMonth]} ${reportYear}`}</p>
+                        </div>
+                      </td></tr>
+                    )}
+                    {filteredReportStones.length > 0 && (
+                      <tr className="total-row">
+                        <td colSpan={2}><strong>TOTAL</strong></td>
+                        <td><strong>{reportTotals.weight.toFixed(2)}</strong></td>
+                        <td><strong>{reportTotals.count} stones</strong></td>
+                        <td style={{ textAlign: "right" }}><strong>₹{reportTotals.amount.toFixed(2)}</strong></td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Invoice History */}
