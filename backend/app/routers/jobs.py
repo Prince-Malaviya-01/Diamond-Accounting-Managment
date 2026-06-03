@@ -213,6 +213,9 @@ def download_completed_direct(job_id: int, user: User = Depends(get_current_user
     if not path:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="For File Contact To Admin")
 
+    job.downloaded = True
+    db.commit()
+
     log_activity(db, "file_download", f"Downloaded result for job {job.id} from {path.name}", user.id)
     return FileResponse(path=path, filename=path.name)
 
@@ -239,10 +242,13 @@ def download_completed_bulk(
             if not path or not path.exists():
                 continue
             archive.write(path, arcname=path.name)
+            job.downloaded = True
             added += 1
 
     if added == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Selected completed files are missing on storage")
+
+    db.commit()
 
     zip_buffer.seek(0)
     zip_data = zip_buffer.getvalue()
@@ -272,6 +278,9 @@ def download_file(token: str, user: User = Depends(get_current_user), db: Sessio
     path = _get_job_completed_path(job)
     if not path:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File missing on storage")
+
+    job.downloaded = True
+    db.commit()
 
     log_activity(db, "file_download", f"Downloaded result for job {job.id}", user.id)
     return FileResponse(path=path, filename=path.name)

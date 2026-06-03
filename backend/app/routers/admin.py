@@ -59,6 +59,7 @@ def all_jobs(admin: User = Depends(get_current_admin), db: Session = Depends(get
             "processing_started_at": j.processing_started_at,
             "completed_at": j.completed_at,
             "rate_per_carat": j.rate_per_carat,
+            "downloaded": j.downloaded,
         }
         for j in jobs
     ]

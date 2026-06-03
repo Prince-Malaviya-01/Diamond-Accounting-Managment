@@ -59,6 +59,7 @@ class JobListItem(BaseModel):
     queue_entered_at: datetime | None
     processing_started_at: datetime | None
     completed_at: datetime | None
+    downloaded: bool
 
 
 class SetPriorityRequest(BaseModel):

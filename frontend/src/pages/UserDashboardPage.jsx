@@ -81,7 +81,11 @@ export default function UserDashboardPage() {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [downloadingBulk, setDownloadingBulk] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(null);
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("clientActiveTab") || "stones"); // stones | report | billing | pay_pending
+  const [downloadedSearchTerm, setDownloadedSearchTerm] = useState("");
+  const [selectedDownloadedIds, setSelectedDownloadedIds] = useState([]);
+  const [downloadingDownloadedBulk, setDownloadingDownloadedBulk] = useState(false);
+  const [downloadedProgress, setDownloadedProgress] = useState(null);
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("clientActiveTab") || "stones"); // stones | report | billing | pay_pending | downloaded_files
   const fileInputRef = useRef(null);
   const msgTimer = useRef(null);
 
@@ -186,9 +190,11 @@ export default function UserDashboardPage() {
     } catch { showMsg("Failed to download statement"); }
   };
 
-  const completed = useMemo(() => jobs.filter((j) => j.status === "Completed"), [jobs]);
+  const allCompleted = useMemo(() => jobs.filter((j) => j.status === "Completed"), [jobs]);
+  const completed = useMemo(() => jobs.filter((j) => j.status === "Completed" && !j.downloaded), [jobs]);
+  const downloadedJobs = useMemo(() => jobs.filter((j) => j.status === "Completed" && j.downloaded), [jobs]);
   const activeJobs = useMemo(() => jobs.filter((j) => j.status !== "Completed"), [jobs]);
-  const totalWeight = useMemo(() => completed.reduce((s, j) => s + Number(j.weight), 0), [completed]);
+  const totalWeight = useMemo(() => allCompleted.reduce((s, j) => s + Number(j.weight), 0), [allCompleted]);
 
   // Stone report totals
   const reportTotals = useMemo(() => {
@@ -228,6 +234,30 @@ export default function UserDashboardPage() {
 
     return list.filter(j => j.stone_id?.toLowerCase().includes(term) || j.completed_filename?.toLowerCase().includes(term));
   }, [completed, searchTerm]);
+
+  const filteredDownloaded = useMemo(() => {
+    let list = [...downloadedJobs].sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
+    if (!downloadedSearchTerm) return list;
+    
+    const term = downloadedSearchTerm.toLowerCase();
+    
+    // Smart Filter: wt:>1.0 or wt:<2.5
+    if (term.includes('wt:')) {
+      const match = term.match(/wt:([><=]?)([0-9.]+)/);
+      if (match) {
+        const op = match[1] || "=";
+        const val = parseFloat(match[2]);
+        return list.filter(j => {
+          const w = parseFloat(j.weight || 0);
+          if (op === '>') return w > val;
+          if (op === '<') return w < val;
+          return w === val;
+        });
+      }
+    }
+
+    return list.filter(j => j.stone_id?.toLowerCase().includes(term) || j.completed_filename?.toLowerCase().includes(term));
+  }, [downloadedJobs, downloadedSearchTerm]);
 
   const revenueTrendData = useMemo(() => {
     return [...billing].reverse().map(b => ({
@@ -352,6 +382,7 @@ export default function UserDashboardPage() {
       const res = await api.get(`/jobs/${job.id}/completed`, { responseType: "blob" });
       await downloadFile(res.data, job.completed_filename || `${job.stone_id}_completed`);
       showMsg("✓ File downloaded");
+      loadData();
     } catch (err) {
       if (err.response && err.response.data instanceof Blob) {
         try {
@@ -430,12 +461,54 @@ export default function UserDashboardPage() {
       await downloadFile(res.data, "completed_stones.zip");
       showMsg("✓ Bulk download saved to D:\\Online\\");
       setSelectedIds([]);
+      loadData();
     } catch (err) {
       console.error(err);
       showMsg("Bulk download failed");
     } finally {
       setDownloadingBulk(false);
       setDownloadProgress(null);
+    }
+  };
+
+  const toggleSelectDownloaded = (id) =>
+    setSelectedDownloadedIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  const selectAllDownloaded = () => setSelectedDownloadedIds(downloadedJobs.map((j) => j.id));
+  const clearSelectionDownloaded = () => setSelectedDownloadedIds([]);
+
+  const downloadSelectedDownloaded = async () => {
+    if (!selectedDownloadedIds.length) { showMsg("Select stones first"); return; }
+    setDownloadingDownloadedBulk(true);
+    setDownloadedProgress(0);
+    try {
+      showMsg("Preparing download...");
+      const res = await api.post(
+        "/jobs/download-bulk",
+        { job_ids: selectedDownloadedIds },
+        {
+          responseType: "blob",
+          onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setDownloadedProgress(percentCompleted);
+            } else {
+              setDownloadedProgress(null);
+            }
+          }
+        }
+      );
+      showMsg("Saving files...");
+      await downloadFile(res.data, "completed_stones.zip");
+      showMsg("✓ Bulk download saved to D:\\Online\\");
+      setSelectedDownloadedIds([]);
+      loadData();
+    } catch (err) {
+      console.error(err);
+      showMsg("Bulk download failed");
+    } finally {
+      setDownloadingDownloadedBulk(false);
+      setDownloadedProgress(null);
     }
   };
 
@@ -563,7 +636,7 @@ export default function UserDashboardPage() {
           <>
             <StatCard label="Total Jobs" value={summary?.total ?? jobs.length}
               icon={<Package size={20} />} color="blue" />
-            <StatCard label="Completed" value={summary?.processed ?? completed.length}
+            <StatCard label="Completed" value={summary?.processed ?? allCompleted.length}
               icon={<CheckCircle2 size={20} />} color="green" />
             <StatCard label="Pending" value={summary?.pending ?? 0}
               icon={<Clock size={20} />} color="orange" />
@@ -657,6 +730,9 @@ export default function UserDashboardPage() {
         </button>
         <button className={`tab-btn ${activeTab === "pay_pending" ? "active" : ""}`} onClick={() => setActiveTab("pay_pending")}>
           <IndianRupee size={16} /> Pay & Pending
+        </button>
+        <button className={`tab-btn ${activeTab === "downloaded_files" ? "active" : ""}`} onClick={() => setActiveTab("downloaded_files")}>
+          <Download size={16} /> Downloaded Files
         </button>
       </div>
 
@@ -1134,6 +1210,97 @@ export default function UserDashboardPage() {
         </div>
       )}
 
+      {/* ── TAB: Downloaded Files ── */}
+      {activeTab === "downloaded_files" && (
+        <div className="fade-in">
+          {/* Search */}
+          <div style={{ position: "relative", marginBottom: 16 }}>
+            <Search size={18} style={{ position: "absolute", left: 12, top: 11, color: "var(--text-light)" }} />
+            <input
+              className="search-input"
+              placeholder="Search downloaded files by ID or filename..."
+              value={downloadedSearchTerm}
+              onChange={(e) => setDownloadedSearchTerm(e.target.value)}
+              style={{ paddingLeft: 38, marginBottom: 0 }}
+            />
+          </div>
+
+          {/* Downloaded Files Panel */}
+          <div className="panel">
+            <div className="panel-header">
+              <div className="panel-title">
+                <div className="panel-icon blue"><Download size={18} /></div>
+                <h3>Downloaded Files</h3>
+              </div>
+              <span className="panel-badge blue">{downloadedJobs.length}</span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+              <div className="bulk-action-grid" style={{ marginBottom: 0, display: "flex", gap: 8 }}>
+                <button className="btn-ghost btn-sm" onClick={selectAllDownloaded} disabled={downloadingDownloadedBulk}>Select All</button>
+                <button className="btn-ghost btn-sm" onClick={clearSelectionDownloaded} disabled={downloadingDownloadedBulk}>Clear</button>
+                <button className="btn-primary btn-sm" onClick={downloadSelectedDownloaded} disabled={!selectedDownloadedIds.length || downloadingDownloadedBulk}>
+                  {downloadingDownloadedBulk ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
+                  {downloadingDownloadedBulk
+                    ? (downloadedProgress !== null ? `Downloading ${downloadedProgress}%` : "Downloading...")
+                    : `Download (${selectedDownloadedIds.length})`}
+                </button>
+              </div>
+              
+              {downloadingDownloadedBulk && downloadedProgress !== null && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: "200px", maxWidth: "300px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                    <span>Downloading ZIP file</span>
+                    <span>{downloadedProgress}%</span>
+                  </div>
+                  <div style={{ width: "100%", height: "6px", background: "var(--border-light)", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ width: `${downloadedProgress}%`, height: "100%", background: "var(--primary)", transition: "width 0.1s ease" }}></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: 40 }}>
+                      <SelectionBox 
+                        checked={selectedDownloadedIds.length === downloadedJobs.length && downloadedJobs.length > 0}
+                        onChange={() => selectedDownloadedIds.length === downloadedJobs.length ? clearSelectionDownloaded() : selectAllDownloaded()} 
+                      />
+                    </th>
+                    <th>Stone ID</th>
+                    <th>File</th>
+                    <th>Completed</th>
+                    <th style={{ width: 130 }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDownloaded.length ? filteredDownloaded.map((job) => (
+                    <tr key={job.id} className={selectedDownloadedIds.includes(job.id) ? "selected-row" : ""}>
+                      <td><SelectionBox checked={selectedDownloadedIds.includes(job.id)} onChange={() => toggleSelectDownloaded(job.id)} /></td>
+                      <td><strong>{job.stone_id}</strong></td>
+                      <td style={{ color: "var(--text-light)", fontSize: ".85rem" }}>{job.completed_filename || "-"}</td>
+                      <td style={{ fontSize: ".85rem" }}>{job.completed_at ? new Date(job.completed_at).toLocaleString('en-GB') : "-"}</td>
+                      <td>
+                        <button className="btn-primary btn-sm" onClick={() => requestDownload(job)} title="Download">
+                          <Download size={14} /> Download
+                        </button>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan={5}>
+                      <div className="empty-state"><Gem size={32} /><p>No downloaded files yet</p></div>
+                    </td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Account info (Always visible bottom of Billing/Pay tabs) */}
       {(activeTab === "billing" || activeTab === "pay_pending") && profile && (
         <div className="panel">
@@ -1158,7 +1325,7 @@ export default function UserDashboardPage() {
             </div>
             <div className="account-item">
               <span className="account-label">Total Completed</span>
-              <span className="account-value">{completed.length} stones</span>
+              <span className="account-value">{allCompleted.length} stones</span>
             </div>
             <div className="account-item highlight">
               <span className="account-label">Total Weight</span>

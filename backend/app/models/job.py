@@ -3,7 +3,7 @@ from app.utils.time import get_ist_now_naive
 from enum import Enum
 from pathlib import Path
 
-from sqlalchemy import DateTime, Enum as SqlEnum, Float, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Enum as SqlEnum, Float, ForeignKey, Integer, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -28,6 +28,7 @@ class Job(Base):
     processing_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     completed_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     status: Mapped[JobStatus] = mapped_column(SqlEnum(JobStatus), default=JobStatus.uploaded, nullable=False)
+    downloaded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     priority: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     retries: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     queue_entered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
