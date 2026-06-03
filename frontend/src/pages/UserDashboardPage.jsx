@@ -725,12 +725,6 @@ export default function UserDashboardPage() {
         <button className={`tab-btn ${activeTab === "report" ? "active" : ""}`} onClick={() => setActiveTab("report")}>
           <FileSpreadsheet size={16} /> Stone Report
         </button>
-        <button className={`tab-btn ${activeTab === "billing" ? "active" : ""}`} onClick={() => setActiveTab("billing")}>
-          <Receipt size={16} /> Billing & Invoices
-        </button>
-        <button className={`tab-btn ${activeTab === "pay_pending" ? "active" : ""}`} onClick={() => setActiveTab("pay_pending")}>
-          <IndianRupee size={16} /> Pay & Pending
-        </button>
         <button className={`tab-btn ${activeTab === "downloaded_files" ? "active" : ""}`} onClick={() => setActiveTab("downloaded_files")}>
           <Download size={16} /> Downloaded Files
         </button>
@@ -967,71 +961,9 @@ export default function UserDashboardPage() {
               </table>
             </div>
           </div>
-        </>
-      )}
 
-      {/* ── TAB: Billing & Invoices ── */}
-      {activeTab === "billing" && (
-        <>
-          {/* Revenue Trend Chart */}
-          <div className="panel chart-panel">
-            <div className="panel-header">
-              <div className="panel-title">
-                <div className="panel-icon purple"><TrendingUp size={18} /></div>
-                <h3>Revenue Trends</h3>
-              </div>
-            </div>
-            <div style={{ height: 250, width: '100%', marginTop: 10 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueTrendData}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--text-secondary)', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--text-secondary)', fontSize: 12}} />
-                  <ChartTooltip 
-                    contentStyle={{ 
-                      borderRadius: 12, 
-                      border: "none", 
-                      background: "var(--bg-card)",
-                      boxShadow: "var(--shadow-lg)",
-                      color: "var(--text)"
-                    }}
-                    itemStyle={{ color: "var(--text)", fontWeight: 600 }}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Billing overview */}
-          {billing.length > 0 && (
-            <div className="report-summary" style={{ marginBottom: 16 }}>
-              <div className="report-stat">
-                <span className="report-stat-label">Total Invoices</span>
-                <span className="report-stat-value">{billing.length}</span>
-              </div>
-              <div className="report-stat">
-                <span className="report-stat-label">Total Stones</span>
-                <span className="report-stat-value">{billingTotals.stones}</span>
-              </div>
-              <div className="report-stat">
-                <span className="report-stat-label">Total Weight</span>
-                <span className="report-stat-value">{billingTotals.weight.toFixed(2)} ct</span>
-              </div>
-              <div className="report-stat highlight">
-                <span className="report-stat-label">Total Amount</span>
-                <span className="report-stat-value">₹{billingTotals.amount.toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="panel">
+          {/* Invoice History */}
+          <div className="panel" style={{ marginTop: 20 }}>
             <div className="panel-header">
               <div className="panel-title">
                 <div className="panel-icon blue"><Receipt size={18} /></div>
@@ -1092,122 +1024,6 @@ export default function UserDashboardPage() {
             </div>
           </div>
         </>
-      )}
-
-      {/* ── TAB: Pay & Pending ── */}
-      {activeTab === "pay_pending" && (
-        <div className="fade-in">
-          {/* Period Filter */}
-          <div className="panel" style={{ marginBottom: 20 }}>
-            <div className="panel-header">
-              <div className="panel-title">
-                <div className="panel-icon blue"><Calendar size={18} /></div>
-                <h3>Select Period</h3>
-              </div>
-              <button className="btn-ghost btn-sm" onClick={() => { setAccProfitMonth("all"); setAccProfitYear("all"); }}>
-                View All
-              </button>
-            </div>
-            <div className="filter-row" style={{ display: "flex", gap: 10, width: "100%", maxWidth: "340px" }}>
-              <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
-                <label style={{ marginBottom: 4 }}>Month</label>
-                <CustomSelect 
-                  options={[{ label: "All Months", value: "all" }, ...MONTHS.slice(1).map((m, i) => ({ label: m, value: i + 1 }))]}
-                  value={accProfitMonth}
-                  onChange={setAccProfitMonth}
-                  style={{ width: "100%" }}
-                />
-              </div>
-              <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
-                <label style={{ marginBottom: 4 }}>Year</label>
-                <CustomSelect 
-                  options={[{ label: "All Years", value: "all" }, ...yearOptions.map(y => ({ label: String(y), value: y }))]}
-                  value={accProfitYear}
-                  onChange={setAccProfitYear}
-                  style={{ width: "100%" }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Account Summary Cards */}
-          <div className="stats-grid" style={{ marginBottom: 25 }}>
-            <div className="stat-card" style={{ borderColor: 'rgba(108, 63, 227, 0.2)', background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(108, 63, 227, 0.03) 100%)' }}>
-              <div className="stat-icon purple"><TrendingUp size={20} /></div>
-              <div className="stat-content">
-                <div className="stat-label">Total Revenue</div>
-                <div className="stat-value" style={{ color: 'var(--primary)' }}>₹{accProfitTotals.revenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-              </div>
-            </div>
-            <div className="stat-card" style={{ borderColor: 'rgba(16, 185, 129, 0.2)', background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(16, 185, 129, 0.03) 100%)' }}>
-              <div className="stat-icon green"><CheckCircle2 size={20} /></div>
-              <div className="stat-content">
-                <div className="stat-label">Total Paid</div>
-                <div className="stat-value" style={{ color: 'var(--success)' }}>₹{accProfitTotals.received.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-              </div>
-            </div>
-            <div className="stat-card" style={{ borderColor: 'rgba(239, 68, 68, 0.2)', background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(239, 68, 68, 0.03) 100%)' }}>
-              <div className="stat-icon red"><AlertCircle size={20} /></div>
-              <div className="stat-content">
-                <div className="stat-label">Pending Balance</div>
-                <div className="stat-value" style={{ color: 'var(--failed)' }}>₹{accProfitTotals.pending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Records */}
-          <div className="panel">
-            <div className="panel-header pricing-panel-header">
-              <div className="panel-title">
-                <div className="panel-icon purple"><Receipt size={18} /></div>
-                <h3>Recent Recorded Entries</h3>
-                <span className="panel-badge purple" style={{ marginLeft: 8 }}>{filteredReceivedTotals.length}</span>
-              </div>
-              <div className="panel-controls">
-                <button className="btn-primary btn-sm" onClick={handleDownloadStatement}>
-                  <Download size={14} /> Download Statement (PDF)
-                </button>
-              </div>
-            </div>
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th style={{ textAlign: "right" }}>Amount</th>
-                    <th style={{ textAlign: "center" }}>Mode</th>
-                    <th>Date & Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredReceivedTotals.length ? filteredReceivedTotals.map((p, i) => (
-                    <tr key={p.id}>
-                      <td>{i + 1}</td>
-                      <td style={{ textAlign: "right", fontWeight: 700, color: "var(--success)" }}>
-                        ₹{Number(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td style={{ textAlign: "center" }}>
-                        <span className={`status-badge ${p.payment_mode === "Cheque" ? "purple" : p.payment_mode === "UPI" ? "blue" : "green"}`}>
-                          {p.payment_mode || "Cash"}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                        {new Date(p.created_at).toLocaleString('en-GB')}
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr><td colSpan={4}>
-                      <div className="empty-state">
-                        <Receipt size={32} />
-                        <p>No payment records found for this period</p>
-                      </div>
-                    </td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ── TAB: Downloaded Files ── */}
@@ -1301,8 +1117,8 @@ export default function UserDashboardPage() {
         </div>
       )}
 
-      {/* Account info (Always visible bottom of Billing/Pay tabs) */}
-      {(activeTab === "billing" || activeTab === "pay_pending") && profile && (
+      {/* Account info (Always visible bottom of Report tab) */}
+      {activeTab === "report" && profile && (
         <div className="panel">
           <div className="panel-header">
             <div className="panel-title">
