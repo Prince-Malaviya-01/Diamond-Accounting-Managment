@@ -130,6 +130,7 @@ export default function UserDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showReportTable, setShowReportTable] = useState(false);
 
   // Accounts/Payment state
   const [recordedProfits, setRecordedProfits] = useState([]);
@@ -219,6 +220,10 @@ export default function UserDashboardPage() {
     const savedTheme = localStorage.getItem("theme") || "dark";
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
+
+  useEffect(() => {
+    setShowReportTable(false);
+  }, [selectedRange]);
 
   const handleDownloadStatement = async () => {
     try {
@@ -963,7 +968,16 @@ export default function UserDashboardPage() {
 
             {/* Report summary cards */}
             {stoneReport.length > 0 && (
-              <div className="report-summary">
+              <div 
+                className={`report-summary ${selectedRange !== "choose" ? "clickable" : ""}`}
+                onClick={() => {
+                  if (selectedRange !== "choose") {
+                    setShowReportTable(prev => !prev);
+                  }
+                }}
+                style={selectedRange !== "choose" ? { cursor: "pointer" } : {}}
+                title={selectedRange !== "choose" ? "Click to toggle detailed records" : ""}
+              >
                 <div className="report-stat">
                   <span className="report-stat-label">Total Stones</span>
                   <span className="report-stat-value">{reportTotals.count}</span>
@@ -976,6 +990,29 @@ export default function UserDashboardPage() {
                   <span className="report-stat-label">Total Amount</span>
                   <span className="report-stat-value">₹{reportTotals.amount.toFixed(2)}</span>
                 </div>
+              </div>
+            )}
+
+            {stoneReport.length > 0 && selectedRange !== "choose" && (
+              <div 
+                className="report-toggle-helper"
+                style={{ 
+                  textAlign: "center", 
+                  fontSize: "0.85rem", 
+                  color: "var(--primary)", 
+                  marginTop: 12, 
+                  marginBottom: 8, 
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  fontWeight: 600,
+                  userSelect: "none"
+                }}
+                onClick={() => setShowReportTable(prev => !prev)}
+              >
+                {showReportTable ? "Hide Detailed Records ▲" : "Click here to show detailed records ▼"}
               </div>
             )}
 
@@ -992,23 +1029,39 @@ export default function UserDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReportStones.length ? filteredReportStones.map((s, i) => (
-                    <tr key={s.job_id}>
-                      <td>{i + 1}</td>
-                      <td><strong>{s.stone_id}</strong></td>
-                      <td>{Number(s.weight).toFixed(2)}</td>
-                      <td style={{ fontSize: ".85rem" }}>{s.completed_at ? new Date(s.completed_at).toLocaleDateString('en-GB') : "-"}</td>
-                      <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(s.amount).toFixed(2)}</td>
-                    </tr>
-                  )) : (
+                  {selectedRange === "choose" ? (
                     <tr><td colSpan={5}>
                       <div className="empty-state">
                         <FileSpreadsheet size={32} />
-                        <p>{selectedRange === "choose" ? "Choose a range to view records" : `No completed stones found in ${MONTHS[reportMonth]} ${reportYear}`}</p>
+                        <p>Choose a range to view records</p>
+                      </div>
+                    </td></tr>
+                  ) : !showReportTable ? (
+                    <tr><td colSpan={5}>
+                      <div className="empty-state" style={{ cursor: "pointer" }} onClick={() => setShowReportTable(true)}>
+                        <FileSpreadsheet size={32} />
+                        <p>Click on the summary above to view records</p>
+                      </div>
+                    </td></tr>
+                  ) : filteredReportStones.length ? (
+                    filteredReportStones.map((s, i) => (
+                      <tr key={s.job_id}>
+                        <td>{i + 1}</td>
+                        <td><strong>{s.stone_id}</strong></td>
+                        <td>{Number(s.weight).toFixed(2)}</td>
+                        <td style={{ fontSize: ".85rem" }}>{s.completed_at ? new Date(s.completed_at).toLocaleDateString('en-GB') : "-"}</td>
+                        <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(s.amount).toFixed(2)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr><td colSpan={5}>
+                      <div className="empty-state">
+                        <FileSpreadsheet size={32} />
+                        <p>{`No completed stones found in ${MONTHS[reportMonth]} ${reportYear}`}</p>
                       </div>
                     </td></tr>
                   )}
-                  {filteredReportStones.length > 0 && (
+                  {showReportTable && filteredReportStones.length > 0 && (
                     <tr className="total-row">
                       <td colSpan={2}><strong>TOTAL</strong></td>
                       <td><strong>{reportTotals.weight.toFixed(2)}</strong></td>

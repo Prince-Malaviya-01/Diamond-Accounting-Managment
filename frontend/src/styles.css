@@ -1620,6 +1620,20 @@ tbody tr:last-child td {
   gap: 12px;
 }
 
+.report-summary.clickable .report-stat {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.report-summary.clickable:hover .report-stat {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary);
+}
+
+.report-summary.clickable:active .report-stat {
+  transform: translateY(0);
+}
+
 .report-stat {
   background: var(--bg-stat);
   border: 1px solid var(--border);
