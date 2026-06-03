@@ -969,12 +969,17 @@ export default function UserDashboardPage() {
                 </div>
                 <button 
                   type="button" 
-                  className="btn-primary" 
-                  onClick={loadStoneReportAndRanges}
+                  className={reportLoaded ? "btn-ghost" : "btn-primary"} 
+                  onClick={reportLoaded ? () => setReportLoaded(false) : loadStoneReportAndRanges}
                   style={{ height: "42px", padding: "0 20px", display: "flex", alignItems: "center", gap: "6px" }}
                   disabled={loading}
                 >
-                  {loading ? <Loader2 size={16} className="spin" /> : <Eye size={16} />} Show Report
+                  {loading ? (
+                    <Loader2 size={16} className="spin" />
+                  ) : (
+                    <Eye size={16} style={{ transform: reportLoaded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                  )}
+                  {reportLoaded ? "Hide Report" : "Show Report"}
                 </button>
                 <button 
                   type="button" 
@@ -989,113 +994,115 @@ export default function UserDashboardPage() {
             </div>
 
             {/* Excel-style summary & detail report */}
-            {reportLoaded && (
-              reportRanges.length === 0 ? (
-                <div className="empty-state">
+            <div className={`report-table-wrapper ${reportLoaded ? 'show' : ''}`}>
+              {reportLoaded && reportRanges.length === 0 ? (
+                <div className="empty-state" style={{ marginTop: 16 }}>
                   <FileSpreadsheet size={32} />
                   <p>No configured weight ranges or records found for this client.</p>
                 </div>
               ) : (
-                <div className="table-container" style={{ marginTop: 16 }}>
-                  <table className="excel-report-table">
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign: "left" }}>Range</th>
-                        <th style={{ textAlign: "right" }}>Pcs</th>
-                        <th style={{ textAlign: "right" }}>Carat</th>
-                        <th style={{ textAlign: "right" }}>Rate</th>
-                        <th style={{ textAlign: "right" }}>Total Rs</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rangeSummaries.map((s) => {
-                        const isExpanded = expandedRanges.includes(s.range);
-                        return (
-                          <Fragment key={s.id}>
-                            <tr 
-                              className="summary-row" 
-                              onClick={() => toggleRangeExpand(s.range)}
-                              style={{ cursor: "pointer" }}
-                            >
-                              <td><strong>{s.range}</strong></td>
-                              <td style={{ textAlign: "right" }}>{s.pcs}</td>
-                              <td style={{ textAlign: "right" }}>{s.carat.toFixed(2)}</td>
-                              <td style={{ textAlign: "right" }}>₹{s.rate.toFixed(2)}</td>
-                              <td style={{ textAlign: "right", fontWeight: 600 }}>₹{s.totalAmt.toFixed(2)}</td>
-                            </tr>
-                            {isExpanded && (
-                              <tr className="expanded-row-container" style={{ background: "var(--bg-card-hover)" }}>
-                                <td colSpan={5} style={{ padding: "16px 20px" }}>
-                                  <div 
-                                    className="report-toggle-helper"
-                                    style={{ 
-                                      textAlign: "center", 
-                                      fontSize: "0.85rem", 
-                                      color: "var(--primary)", 
-                                      marginBottom: 12, 
-                                      cursor: "pointer",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      gap: "6px",
-                                      fontWeight: 600,
-                                      userSelect: "none"
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleRangeExpand(s.range);
-                                    }}
-                                  >
-                                    Hide Detailed Records ▲
-                                  </div>
-                                  <div className="table-container nested-table" style={{ border: "1.5px solid var(--border-light)", borderRadius: "8px" }}>
-                                    <table style={{ width: "100%" }}>
-                                      <thead>
-                                        <tr>
-                                          <th>#</th>
-                                          <th>Stone ID</th>
-                                          <th>Weight (ct)</th>
-                                          <th>Completed On</th>
-                                          <th style={{ textAlign: "right" }}>Amount (₹)</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {s.stones.length ? s.stones.map((stone, idx) => (
-                                          <tr key={stone.job_id}>
-                                            <td>{idx + 1}</td>
-                                            <td><strong>{stone.stone_id}</strong></td>
-                                            <td>{Number(stone.weight).toFixed(2)}</td>
-                                            <td style={{ fontSize: ".85rem" }}>{stone.completed_at ? new Date(stone.completed_at).toLocaleDateString('en-GB') : "-"}</td>
-                                            <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(stone.amount).toFixed(2)}</td>
-                                          </tr>
-                                        )) : (
-                                          <tr>
-                                            <td colSpan={5} style={{ textAlign: "center", color: "var(--text-light)", padding: "20px" }}>
-                                              No completed stones found in this range
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </td>
+                reportRanges.length > 0 && (
+                  <div className="table-container" style={{ marginTop: 16 }}>
+                    <table className="excel-report-table">
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: "left" }}>Range</th>
+                          <th style={{ textAlign: "right" }}>Pcs</th>
+                          <th style={{ textAlign: "right" }}>Carat</th>
+                          <th style={{ textAlign: "right" }}>Rate</th>
+                          <th style={{ textAlign: "right" }}>Total Rs</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rangeSummaries.map((s) => {
+                          const isExpanded = expandedRanges.includes(s.range);
+                          return (
+                            <Fragment key={s.id}>
+                              <tr 
+                                className="summary-row" 
+                                onClick={() => toggleRangeExpand(s.range)}
+                                style={{ cursor: "pointer" }}
+                              >
+                                <td><strong>{s.range}</strong></td>
+                                <td style={{ textAlign: "right" }}>{s.pcs}</td>
+                                <td style={{ textAlign: "right" }}>{s.carat.toFixed(2)}</td>
+                                <td style={{ textAlign: "right" }}>₹{s.rate.toFixed(2)}</td>
+                                <td style={{ textAlign: "right", fontWeight: 600 }}>₹{s.totalAmt.toFixed(2)}</td>
                               </tr>
-                            )}
-                          </Fragment>
-                        );
-                      })}
-                      <tr className="total-row">
-                        <td><strong>TOTAL</strong></td>
-                        <td style={{ textAlign: "right" }}><strong>{reportTotals.pcs}</strong></td>
-                        <td style={{ textAlign: "right" }}><strong>{reportTotals.carat.toFixed(2)}</strong></td>
-                        <td></td>
-                        <td style={{ textAlign: "right" }}><strong>₹{reportTotals.amount.toFixed(2)}</strong></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )
-            )}
+                              {isExpanded && (
+                                <tr className="expanded-row-container" style={{ background: "var(--bg-card-hover)" }}>
+                                  <td colSpan={5} style={{ padding: "16px 20px" }}>
+                                    <div 
+                                      className="report-toggle-helper"
+                                      style={{ 
+                                        textAlign: "center", 
+                                        fontSize: "0.85rem", 
+                                        color: "var(--primary)", 
+                                        marginBottom: 12, 
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "6px",
+                                        fontWeight: 600,
+                                        userSelect: "none"
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleRangeExpand(s.range);
+                                      }}
+                                    >
+                                      Hide Detailed Records ▲
+                                    </div>
+                                    <div className="table-container nested-table" style={{ border: "1.5px solid var(--border-light)", borderRadius: "8px" }}>
+                                      <table style={{ width: "100%" }}>
+                                        <thead>
+                                          <tr>
+                                            <th>#</th>
+                                            <th>Stone ID</th>
+                                            <th>Weight (ct)</th>
+                                            <th>Completed On</th>
+                                            <th style={{ textAlign: "right" }}>Amount (₹)</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {s.stones.length ? s.stones.map((stone, idx) => (
+                                            <tr key={stone.job_id}>
+                                              <td>{idx + 1}</td>
+                                              <td><strong>{stone.stone_id}</strong></td>
+                                              <td>{Number(stone.weight).toFixed(2)}</td>
+                                              <td style={{ fontSize: ".85rem" }}>{stone.completed_at ? new Date(stone.completed_at).toLocaleDateString('en-GB') : "-"}</td>
+                                              <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(stone.amount).toFixed(2)}</td>
+                                            </tr>
+                                          )) : (
+                                            <tr>
+                                              <td colSpan={5} style={{ textAlign: "center", color: "var(--text-light)", padding: "20px" }}>
+                                                No completed stones found in this range
+                                              </td>
+                                            </tr>
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                        <tr className="total-row">
+                          <td><strong>TOTAL</strong></td>
+                          <td style={{ textAlign: "right" }}><strong>{reportTotals.pcs}</strong></td>
+                          <td style={{ textAlign: "right" }}><strong>{reportTotals.carat.toFixed(2)}</strong></td>
+                          <td></td>
+                          <td style={{ textAlign: "right" }}><strong>₹{reportTotals.amount.toFixed(2)}</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              )}
+            </div>
           </div>
         </>
       )}

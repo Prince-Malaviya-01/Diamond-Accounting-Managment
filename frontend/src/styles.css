@@ -1674,6 +1674,18 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
+.report-table-wrapper {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+
+.report-table-wrapper.show {
+  max-height: 2000px;
+  opacity: 1;
+}
+
 .report-stat {
   background: var(--bg-stat);
   border: 1px solid var(--border);
