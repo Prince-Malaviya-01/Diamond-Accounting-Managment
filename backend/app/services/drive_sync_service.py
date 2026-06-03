@@ -29,9 +29,17 @@ def _candidate_stone_keys(stem: str) -> list[str]:
     if not value:
         return []
     keys = [value]
+    if len(value) > 1:
+        stripped = value[:-1]
+        if stripped not in keys:
+            keys.append(stripped)
     token = value.split("_")[0].strip()
     if token and token not in keys:
         keys.append(token)
+    if token and len(token) > 1:
+        token_stripped = token[:-1]
+        if token_stripped not in keys:
+            keys.append(token_stripped)
     return keys
 
 

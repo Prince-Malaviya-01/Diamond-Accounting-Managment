@@ -754,7 +754,10 @@ export default function AdminDashboardPage() {
         const stem = dotIdx !== -1 ? filename.substring(0, dotIdx).trim().toLowerCase() : filename.trim().toLowerCase();
         
         // Find if there is a selected job in "Processing" status matching this stone ID stem
-        const matchingJob = processingJobs.find(j => j.stone_id.trim().toLowerCase() === stem);
+        const matchingJob = processingJobs.find(j => {
+          const jobStoneId = j.stone_id.trim().toLowerCase();
+          return (stem === jobStoneId) || (stem.length === jobStoneId.length + 1 && stem.startsWith(jobStoneId));
+        });
         
         if (matchingJob) {
           const fd = new FormData();
