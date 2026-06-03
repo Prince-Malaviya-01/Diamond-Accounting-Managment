@@ -220,6 +220,13 @@ export default function UserDashboardPage() {
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
+  useEffect(() => {
+    if (reportLoaded) {
+      loadStoneReportAndRanges();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportMonth, reportYear]);
+
   const handleDownloadStatement = async () => {
     try {
       showMsg("Generating Statement PDF...");
@@ -945,7 +952,7 @@ export default function UserDashboardPage() {
                   <CustomSelect
                     options={MONTHS.slice(1).map((m, i) => ({ label: m, value: i + 1 }))}
                     value={reportMonth}
-                    onChange={(val) => { setReportMonth(val); setReportLoaded(false); }}
+                    onChange={(val) => setReportMonth(val)}
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -954,7 +961,7 @@ export default function UserDashboardPage() {
                   <CustomSelect
                     options={yearOptions.map(y => ({ label: String(y), value: y }))}
                     value={reportYear}
-                    onChange={(val) => { setReportYear(val); setReportLoaded(false); }}
+                    onChange={(val) => setReportYear(val)}
                     style={{ width: "100%" }}
                   />
                 </div>
