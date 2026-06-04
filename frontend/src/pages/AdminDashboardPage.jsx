@@ -2091,7 +2091,7 @@ export default function AdminDashboardPage() {
                           )}
                           {j.upload_available && (
                             <button 
-                              className={`btn-sm ${j.downloaded ? "btn-secondary" : "btn-primary"}`}
+                              className={`btn-sm ${(j.downloaded || j.status === "Processing" || j.status === "Completed") ? "btn-secondary" : "btn-primary"}`}
                               style={{ 
                                 display: "inline-flex", 
                                 alignItems: "center", 
@@ -2110,7 +2110,7 @@ export default function AdminDashboardPage() {
                               {downloadingSingleId === j.id ? (
                                 <span>{singleDownloadProgress}%</span>
                               ) : (
-                                <span>{j.downloaded ? "Downloaded" : "Download"}</span>
+                                <span>{(j.downloaded || j.status === "Processing" || j.status === "Completed") ? "Downloaded" : "Download"}</span>
                               )}
                             </button>
                           )}
