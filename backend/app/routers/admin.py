@@ -74,7 +74,6 @@ def download_uploaded_file(job_id: int, admin: User = Depends(get_current_admin)
     path = Path(job.upload_path)
     if not path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uploaded file missing on storage")
-    job.downloaded = True
     if job.status in (JobStatus.uploaded, JobStatus.queued):
         job.status = JobStatus.processing
     db.commit()
@@ -91,14 +90,14 @@ def download_uploaded_bulk(
     from io import BytesIO
     _ = admin
     
-    # Filter only jobs that are NOT downloaded yet and match selected ids
+    # Filter only jobs that match selected ids
     jobs = (
         db.query(Job)
-        .filter(Job.id.in_(payload.job_ids), Job.downloaded == False)
+        .filter(Job.id.in_(payload.job_ids))
         .all()
     )
     if not jobs:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No new (non-downloaded) uploaded files found for selected jobs")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No uploaded files found for selected jobs")
 
     zip_buffer = BytesIO()
     added = 0
@@ -110,7 +109,6 @@ def download_uploaded_bulk(
             if not path.exists():
                 continue
             archive.write(path, arcname=path.name)
-            job.downloaded = True
             if job.status in (JobStatus.uploaded, JobStatus.queued):
                 job.status = JobStatus.processing
             added += 1
