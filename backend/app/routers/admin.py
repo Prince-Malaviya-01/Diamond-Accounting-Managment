@@ -266,6 +266,7 @@ def upload_result(
     # Point database to the internal file
     job.completed_path = str(target_path)
     job.status = JobStatus.completed
+    job.downloaded = False
     job.completed_at = get_ist_now_naive()
     
     # Lock in the rate only if it hasn't been set yet (to preserve the price at time of upload)

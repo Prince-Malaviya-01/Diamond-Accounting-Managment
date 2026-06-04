@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Bar, BarChart, CartesianGrid, Pie, PieChart,
@@ -30,6 +30,22 @@ const STATUS_CONFIG = {
 
 const PIE_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#3b82f6", "#a855f7", "#ec4899"];
 const MONTHS = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+const isWeightInRange = (weight, rangeStr) => {
+  const clean = rangeStr.toUpperCase().replace(/\s+/g, '');
+  if (clean.includes("TO")) {
+    const parts = clean.split("TO");
+    const min = parseFloat(parts[0].replace(/[^0-9.]/g, ''));
+    const max = parseFloat(parts[1].replace(/[^0-9.]/g, ''));
+    const w = Math.round(Number(weight) * 100) / 100;
+    return min <= w && w <= max;
+  } else if (clean.includes("UP")) {
+    const min = parseFloat(clean.replace("UP", "").replace(/[^0-9.]/g, ''));
+    const w = Math.round(Number(weight) * 100) / 100;
+    return w >= min;
+  }
+  return false;
+};
 
 const HorizontalScrollContainer = ({ children, style, className }) => {
   const ref = useRef(null);
@@ -108,6 +124,15 @@ export default function AdminDashboardPage() {
   const [allInvoices, setAllInvoices] = useState([]);
   const [adminStoneReport, setAdminStoneReport] = useState([]);
   const [stoneReportUserId, setStoneReportUserId] = useState("all");
+  const [adminReportRanges, setAdminReportRanges] = useState([]);
+  const [adminReportLoaded, setAdminReportLoaded] = useState(false);
+  const [expandedRanges, setExpandedRanges] = useState([]);
+
+  const toggleRangeExpand = (rangeStr) => {
+    setExpandedRanges(prev =>
+      prev.includes(rangeStr) ? prev.filter(r => r !== rangeStr) : [...prev, rangeStr]
+    );
+  };
   const [userAccount, setUserAccount] = useState(null);
   const [viewAccountUserId, setViewAccountUserId] = useState(null);
   const [billingSubTab, setBillingSubTab] = useState("overview"); // overview | invoices | stones | account
@@ -498,13 +523,40 @@ export default function AdminDashboardPage() {
     } catch { showMsg("Failed to load billing data"); }
   }, [billingYear, billingMonth]);
 
-  const loadAdminStoneReport = useCallback(async () => {
+  const fetchAdminStoneReportData = useCallback(async () => {
     try {
       const userId = stoneReportUserId === "all" ? undefined : Number(stoneReportUserId);
       const res = await billingApi.getAdminStoneReport(userId, billingYear, billingMonth);
       setAdminStoneReport(res.data);
-    } catch { setAdminStoneReport([]); }
+
+      // Fetch weight ranges for grouping
+      let rangesRes;
+      if (stoneReportUserId === "all") {
+        // Fetch active global prices and map to range items
+        rangesRes = await api.get("/admin/price-config", { params: { include_history: false } });
+        const formatted = rangesRes.data.map(cfg => ({
+          id: cfg.id,
+          range: cfg.weight,
+          price: cfg.price
+        }));
+        setAdminReportRanges(formatted);
+      } else {
+        rangesRes = await api.get(`/billing/weight-ranges/${stoneReportUserId}`, {
+          params: { year: billingYear, month: billingMonth }
+        });
+        setAdminReportRanges(rangesRes.data);
+      }
+    } catch { 
+      setAdminStoneReport([]); 
+      setAdminReportRanges([]);
+    }
   }, [stoneReportUserId, billingYear, billingMonth]);
+
+  const loadAdminStoneReport = useCallback(async () => {
+    await fetchAdminStoneReportData();
+    setAdminReportLoaded(true);
+    setExpandedRanges([]);
+  }, [fetchAdminStoneReportData]);
 
   const loadUserAccount = useCallback(async (uid) => {
     try {
@@ -915,9 +967,19 @@ export default function AdminDashboardPage() {
   }, [activeTab, loadBillingData]);
 
   useEffect(() => {
-    if (activeTab === "billing" && billingSubTab === "stones") loadAdminStoneReport();
+    if (activeTab === "billing" && billingSubTab === "stones") {
+      if (adminReportLoaded) {
+        fetchAdminStoneReportData();
+      }
+    }
     if (activeTab === "pricing") loadPriceConfig();
-  }, [activeTab, billingSubTab, loadAdminStoneReport, loadPriceConfig]);
+  }, [activeTab, billingSubTab, adminReportLoaded, fetchAdminStoneReportData, loadPriceConfig]);
+
+  useEffect(() => {
+    if (adminReportLoaded) {
+      fetchAdminStoneReportData();
+    }
+  }, [billingMonth, billingYear, stoneReportUserId, adminReportLoaded, fetchAdminStoneReportData]);
 
   const updatePriority = async (jobId, priority) => {
     try {
@@ -1303,7 +1365,7 @@ export default function AdminDashboardPage() {
   const nonAdminUsers = useMemo(() => users.filter(u => !u.is_admin), [users]);
 
   const isJobFullyCompleted = useCallback((j) => {
-    return j.status === "Completed" && parseFloat(j.weight) > 0 && j.rate_per_carat !== null && parseFloat(j.rate_per_carat) > 0;
+    return j.status === "Completed" && parseFloat(j.weight) > 0 && j.rate_per_carat !== null && parseFloat(j.rate_per_carat) > 0 && j.downloaded;
   }, []);
 
   const filteredJobs = useMemo(() => {
@@ -1434,11 +1496,32 @@ export default function AdminDashboardPage() {
     return { stones, weight, amount, users: billingOverview.length };
   }, [billingOverview]);
 
+  const adminRangeSummaries = useMemo(() => {
+    if (!adminReportRanges.length) return [];
+    return adminReportRanges.map(r => {
+      const matchingStones = adminStoneReport.filter(s => isWeightInRange(s.weight, r.range));
+      const pcs = matchingStones.length;
+      const carat = matchingStones.reduce((sum, s) => sum + Number(s.weight), 0);
+      const totalAmt = matchingStones.reduce((sum, s) => sum + Number(s.amount), 0);
+      const rateVal = carat > 0 ? (totalAmt / carat) : (parseFloat(r.price) || 0);
+      return {
+        id: r.id,
+        range: r.range,
+        rate: rateVal,
+        pcs,
+        carat,
+        totalAmt,
+        stones: matchingStones
+      };
+    });
+  }, [adminReportRanges, adminStoneReport]);
+
   const stoneReportTotals = useMemo(() => {
-    const weight = adminStoneReport.reduce((s, r) => s + Number(r.weight), 0);
-    const amount = adminStoneReport.reduce((s, r) => s + Number(r.amount), 0);
-    return { weight, amount, count: adminStoneReport.length };
-  }, [adminStoneReport]);
+    const pcs = adminRangeSummaries.reduce((sum, r) => sum + r.pcs, 0);
+    const weight = adminRangeSummaries.reduce((sum, r) => sum + r.carat, 0);
+    const amount = adminRangeSummaries.reduce((sum, r) => sum + r.totalAmt, 0);
+    return { weight, amount, count: pcs };
+  }, [adminRangeSummaries]);
 
   const StatusBadge = ({ status }) => {
     const cfg = STATUS_CONFIG[status] || { cls: "uploaded", icon: null };
@@ -2389,7 +2472,7 @@ export default function AdminDashboardPage() {
                         <th style={{ width: "90px" }}>Rate</th>
                         <th style={{ width: "110px", textAlign: "right" }}>Amount</th>
                         <th style={{ width: "130px", textAlign: "center" }}>Generated</th>
-                        <th style={{ width: "180px", textAlign: "center" }}>Download</th>
+                        <th style={{ width: "180px", textAlign: "center" }}>Download File</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2404,7 +2487,7 @@ export default function AdminDashboardPage() {
                           <td>₹{Number(inv.rate_per_carat).toFixed(2)}</td>
                           <td style={{ textAlign: "right", fontWeight: 600, color: "var(--accent)" }}>₹{Number(inv.total_amount).toFixed(2)}</td>
                           <td style={{ width: "130px", textAlign: "center", fontSize: ".82rem" }}>{inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-GB') : "-"}</td>
-                          <td style={{ textAlign: "center" }}>
+                          <td style={{ width: "180px", textAlign: "center" }}>
                             <div style={{ display: "flex", justifyContent: "center" }}>
                               <button className="btn-primary btn-sm" style={{ width: "140px", justifyContent: "center" }} onClick={() => openReportModal(inv.user_id, inv.company_name, inv.month)}>
                                 <Download size={13} /> Download File
@@ -2433,83 +2516,159 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
                 <div className="filter-row" style={{ marginBottom: 16 }}>
-                  <div className="filter-group">
-                    <label><UserIcon size={14} /> User</label>
-                    <CustomSelect 
-                      options={[
-                        { label: "All Users", value: "all" },
-                        ...nonAdminUsers.map(u => ({ label: `${u.company_name} (${u.username})`, value: u.id }))
-                      ]}
-                      value={stoneReportUserId}
-                      onChange={setStoneReportUserId}
-                      style={{ minWidth: "220px" }}
-                    />
+                  <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "600px", alignItems: "flex-end" }}>
+                    <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
+                      <label><UserIcon size={14} /> User</label>
+                      <CustomSelect 
+                        options={[
+                          { label: "All Users", value: "all" },
+                          ...nonAdminUsers.map(u => ({ label: `${u.company_name} (${u.username})`, value: u.id }))
+                        ]}
+                        value={stoneReportUserId}
+                        onChange={setStoneReportUserId}
+                        style={{ width: "100%" }}
+                      />
+                    </div>
+                    {/* Toggle button */}
+                    <button 
+                      type="button" 
+                      className={adminReportLoaded ? "btn-ghost" : "btn-primary"} 
+                      onClick={adminReportLoaded ? () => setAdminReportLoaded(false) : loadAdminStoneReport}
+                      style={{ height: "42px", padding: "0 20px", display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                      <Eye size={16} style={{ transform: adminReportLoaded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                      {adminReportLoaded ? "Hide Report" : "Show Report"}
+                    </button>
                   </div>
-                  <button className="btn-primary btn-sm" onClick={loadAdminStoneReport} style={{ alignSelf: "flex-end" }}>
-                    <Filter size={14} /> Refresh
-                  </button>
                 </div>
 
-                {adminStoneReport.length > 0 && (
-                  <div className="report-summary" style={{ marginBottom: 16 }}>
-                    <div className="report-stat">
-                      <span className="report-stat-label">Total Stones</span>
-                      <span className="report-stat-value">{stoneReportTotals.count}</span>
+                <div className={`report-table-wrapper ${adminReportLoaded ? 'show' : ''}`}>
+                  {adminReportLoaded && adminReportRanges.length === 0 ? (
+                    <div className="empty-state" style={{ marginTop: 16 }}>
+                      <FileSpreadsheet size={32} />
+                      <p>No configured weight ranges or records found for this selection.</p>
                     </div>
-                    <div className="report-stat">
-                      <span className="report-stat-label">Total Weight</span>
-                      <span className="report-stat-value">{stoneReportTotals.weight.toFixed(2)} ct</span>
-                    </div>
-                    <div className="report-stat highlight">
-                      <span className="report-stat-label">Total Amount</span>
-                      <span className="report-stat-value">₹{stoneReportTotals.amount.toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Company</th>
-                        <th>Stone ID</th>
-                        <th>Weight (ct)</th>
-                        <th>Completed</th>
-                        <th>Rate (₹)</th>
-                        <th style={{ textAlign: "right" }}>Amount (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {adminStoneReport.length ? adminStoneReport.map((s, i) => (
-                        <tr key={s.job_id}>
-                          <td>{i + 1}</td>
-                          <td><strong>{s.company_name}</strong></td>
-                          <td>{s.stone_id}</td>
-                          <td>{Number(s.weight).toFixed(2)}</td>
-                          <td style={{ fontSize: ".82rem" }}>{s.completed_at ? new Date(s.completed_at).toLocaleDateString('en-GB') : "-"}</td>
-                          <td>₹{Number(s.rate_per_carat).toFixed(2)}</td>
-                          <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(s.amount).toFixed(2)}</td>
-                        </tr>
-                      )) : (
-                        <tr><td colSpan={7}>
-                          <div className="empty-state">
-                            <FileSpreadsheet size={28} />
-                            <p>No stones for selected period</p>
+                  ) : (
+                    adminReportRanges.length > 0 && (
+                      <>
+                        <div className="report-summary" style={{ marginBottom: 16, marginTop: 16 }}>
+                          <div className="report-stat">
+                            <span className="report-stat-label">Total Stones</span>
+                            <span className="report-stat-value">{stoneReportTotals.count}</span>
                           </div>
-                        </td></tr>
-                      )}
-                      {adminStoneReport.length > 0 && (
-                        <tr className="total-row">
-                          <td colSpan={3}><strong>TOTAL</strong></td>
-                          <td><strong>{stoneReportTotals.weight.toFixed(2)}</strong></td>
-                          <td><strong>{stoneReportTotals.count} stones</strong></td>
-                          <td></td>
-                          <td style={{ textAlign: "right" }}><strong>₹{stoneReportTotals.amount.toFixed(2)}</strong></td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                          <div className="report-stat">
+                            <span className="report-stat-label">Total Weight</span>
+                            <span className="report-stat-value">{stoneReportTotals.weight.toFixed(2)} ct</span>
+                          </div>
+                          <div className="report-stat highlight">
+                            <span className="report-stat-label">Total Amount</span>
+                            <span className="report-stat-value">₹{stoneReportTotals.amount.toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        <div className="table-container" style={{ marginTop: 16 }}>
+                          <table className="excel-report-table">
+                            <thead>
+                              <tr>
+                                <th style={{ textAlign: "left" }}>Range</th>
+                                <th style={{ textAlign: "right" }}>Pcs</th>
+                                <th style={{ textAlign: "right" }}>Carat</th>
+                                <th style={{ textAlign: "right" }}>Rate</th>
+                                <th style={{ textAlign: "right" }}>Total Rs</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {adminRangeSummaries.map((s) => {
+                                const isExpanded = expandedRanges.includes(s.range);
+                                return (
+                                  <Fragment key={s.id || s.range}>
+                                    <tr 
+                                      className="summary-row" 
+                                      onClick={() => s.pcs > 0 && toggleRangeExpand(s.range)}
+                                      style={{ cursor: s.pcs > 0 ? "pointer" : "default" }}
+                                    >
+                                      <td><strong>{s.range}</strong></td>
+                                      <td style={{ textAlign: "right" }}>{s.pcs}</td>
+                                      <td style={{ textAlign: "right" }}>{s.carat.toFixed(2)}</td>
+                                      <td style={{ textAlign: "right" }}>₹{s.rate.toFixed(2)}</td>
+                                      <td style={{ textAlign: "right", fontWeight: 600 }}>₹{s.totalAmt.toFixed(2)}</td>
+                                    </tr>
+                                    {isExpanded && (
+                                      <tr className="expanded-row-container" style={{ background: "var(--bg-card-hover)" }}>
+                                        <td colSpan={5} style={{ padding: "16px 20px" }}>
+                                          <div 
+                                            className="report-toggle-helper"
+                                            style={{ 
+                                              textAlign: "center", 
+                                              fontSize: "0.85rem", 
+                                              color: "var(--primary)", 
+                                              marginBottom: 12, 
+                                              cursor: "pointer",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              gap: "6px",
+                                              fontWeight: 600,
+                                              userSelect: "none"
+                                            }}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleRangeExpand(s.range);
+                                            }}
+                                          >
+                                            Hide Detailed Records ▲
+                                          </div>
+                                          <div className="table-container nested-table" style={{ border: "1.5px solid var(--border-light)", borderRadius: "8px" }}>
+                                            <table style={{ width: "100%" }}>
+                                              <thead>
+                                                <tr>
+                                                  <th>#</th>
+                                                  {stoneReportUserId === "all" && <th>Company</th>}
+                                                  <th>Stone ID</th>
+                                                  <th>Weight (ct)</th>
+                                                  <th>Completed On</th>
+                                                  <th style={{ textAlign: "right" }}>Amount (₹)</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {s.stones.length ? s.stones.map((stone, idx) => (
+                                                  <tr key={stone.job_id}>
+                                                    <td>{idx + 1}</td>
+                                                    {stoneReportUserId === "all" && <td><strong>{stone.company_name}</strong></td>}
+                                                    <td><strong>{stone.stone_id}</strong></td>
+                                                    <td>{Number(stone.weight).toFixed(2)}</td>
+                                                    <td style={{ fontSize: ".85rem" }}>{stone.completed_at ? new Date(stone.completed_at).toLocaleDateString('en-GB') : "-"}</td>
+                                                    <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(stone.amount).toFixed(2)}</td>
+                                                  </tr>
+                                                )) : (
+                                                  <tr>
+                                                    <td colSpan={stoneReportUserId === "all" ? 6 : 5} style={{ textAlign: "center", color: "var(--text-light)", padding: "20px" }}>
+                                                      No completed stones found in this range
+                                                    </td>
+                                                  </tr>
+                                                )}
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </Fragment>
+                                );
+                              })}
+                              <tr className="total-row">
+                                <td><strong>TOTAL</strong></td>
+                                <td style={{ textAlign: "right" }}><strong>{stoneReportTotals.count}</strong></td>
+                                <td style={{ textAlign: "right" }}><strong>{stoneReportTotals.weight.toFixed(2)}</strong></td>
+                                <td></td>
+                                <td style={{ textAlign: "right" }}><strong>₹{stoneReportTotals.amount.toFixed(2)}</strong></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -2626,7 +2785,7 @@ export default function AdminDashboardPage() {
                             <th style={{ width: 100 }}>Stones</th>
                             <th style={{ width: 120 }}>Weight</th>
                             <th style={{ width: 150, textAlign: "right" }}>Amount</th>
-                            <th style={{ width: 180, textAlign: "center" }}>Download</th>
+                            <th style={{ width: 180, textAlign: "center" }}>Download File</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2636,7 +2795,7 @@ export default function AdminDashboardPage() {
                               <td>{inv.total_stones}</td>
                               <td>{Number(inv.total_weight).toFixed(2)}</td>
                               <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(inv.total_amount).toFixed(2)}</td>
-                              <td style={{ width: 180, textAlign: "center" }}>
+                              <td style={{ width: "180px", textAlign: "center" }}>
                                 <div style={{ display: "flex", justifyContent: "center" }}>
                                   <button className="btn-primary btn-sm" style={{ width: "140px", justifyContent: "center" }} onClick={() => openReportModal(userAccount.user_id, userAccount.company_name, inv.month)}>
                                     <Download size={13} /> Download File
