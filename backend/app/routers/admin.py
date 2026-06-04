@@ -75,7 +75,8 @@ def download_uploaded_file(job_id: int, admin: User = Depends(get_current_admin)
     if not path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uploaded file missing on storage")
     job.downloaded = True
-    job.status = JobStatus.processing
+    if job.status in (JobStatus.uploaded, JobStatus.queued):
+        job.status = JobStatus.processing
     db.commit()
     return FileResponse(path=path, filename=path.name)
 
@@ -110,7 +111,8 @@ def download_uploaded_bulk(
                 continue
             archive.write(path, arcname=path.name)
             job.downloaded = True
-            job.status = JobStatus.processing
+            if job.status in (JobStatus.uploaded, JobStatus.queued):
+                job.status = JobStatus.processing
             added += 1
 
     if added == 0:
