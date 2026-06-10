@@ -9,6 +9,7 @@ import {
 import api, { billingApi } from "../api";
 import { downloadFile } from "../utils/fileSystemUtils";
 import LogoutButton from "../components/LogoutButton";
+import NotificationBell from "../components/NotificationBell";
 import Shell from "../components/Shell";
 import StatCard from "../components/StatCard";
 import ThemeToggle from "../components/ThemeToggle";
@@ -693,6 +694,7 @@ export default function UserDashboardPage() {
     <Shell title="Dashboard" subtitle={profile ? `${profile.company_name} — ${profile.username}` : ""} actions={
       <>
         <span className="refresh-dot" title="Auto-refresh active" />
+        <NotificationBell />
         <ThemeToggle />
         <LogoutButton />
       </>

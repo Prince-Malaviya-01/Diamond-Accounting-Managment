@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 import threading
 
 from app.database import engine
-from app.models import activity_log, download_token, invoice, job, user
+from app.models import activity_log, download_token, invoice, job, user, notification
 from app.models.base import Base
 from app.models.user import User
-from app.routers import admin, analytics, auth, billing, jobs, users
+from app.routers import admin, analytics, auth, billing, jobs, users, notifications
 from app.security import hash_password
 from app.services.drive_sync_service import backfill_existing_uploads_to_stone_folders
 from app.services.storage_service import ensure_drive_sync_tree_for_user, ensure_storage_tree
@@ -108,3 +108,4 @@ app.include_router(admin.router)
 app.include_router(billing.router)
 app.include_router(analytics.router)
 app.include_router(users.router)
+app.include_router(notifications.router)

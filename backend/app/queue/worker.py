@@ -11,6 +11,119 @@ from app.services.log_service import log_activity
 settings = get_settings()
 
 
+def process_pending_notifications(db) -> None:
+    from app.models.notification import Notification
+    from app.models.user import User
+    from app.models.job import Job
+    from app.services.email_service import send_email
+    from app.utils.time import get_ist_now_naive
+    
+    now = get_ist_now_naive()
+
+    # 1. CLIENT UPLOADS -> ADMIN NOTIFICATIONS (2-minute silence debounce)
+    unnotified_uploads = (
+        db.query(Job)
+        .filter(Job.notified_admin == False)
+        .all()
+    )
+
+    if unnotified_uploads:
+        uploads_by_user = {}
+        for job in unnotified_uploads:
+            uploads_by_user.setdefault(job.user_id, []).append(job)
+
+        for user_id, jobs in uploads_by_user.items():
+            latest_created_at = max(j.created_at for j in jobs)
+            diff_seconds = (now - latest_created_at).total_seconds()
+
+            # If 2 minutes of silence passed
+            if diff_seconds >= 120:
+                client = db.query(User).filter(User.id == user_id).first()
+                if client:
+                    stone_ids = [j.stone_id for j in jobs]
+                    stone_ids_str = ", ".join(stone_ids)
+                    count = len(jobs)
+
+                    # Get admin user
+                    admin_user = db.query(User).filter(User.is_admin == True).first()
+                    if admin_user and admin_user.email:
+                        subject = f"New Stones Uploaded by {client.company_name}"
+                        body = (
+                            f"Hello Admin,\n\n"
+                            f"Client '{client.company_name}' (username: {client.username}) has uploaded {count} new stone file(s).\n\n"
+                            f"Stone ID(s):\n{stone_ids_str}\n\n"
+                            f"Please log in to the admin panel to process them.\n\n"
+                            f"Regards,\n"
+                            f"Diamond Portal Automated Engine"
+                        )
+                        send_email(admin_user.email, subject, body)
+
+                    # Create in-app Notification for Admin
+                    notification = Notification(
+                        user_id=None,
+                        title="New Stones Uploaded",
+                        message=f"Client '{client.company_name}' uploaded {count} new stones (IDs: {stone_ids_str})."
+                    )
+                    db.add(notification)
+
+                    # Mark all as notified
+                    for job in jobs:
+                        job.notified_admin = True
+                    db.commit()
+                    print(f"[Worker] Sent upload notification to Admin for client {client.username} ({count} stones)")
+
+    # 2. ADMIN COMPLETIONS -> CLIENT NOTIFICATIONS (1-minute silence debounce)
+    unnotified_completions = (
+        db.query(Job)
+        .filter(Job.status == "Completed", Job.notified_client == False, Job.completed_at.isnot(None))
+        .all()
+    )
+
+    if unnotified_completions:
+        completions_by_user = {}
+        for job in unnotified_completions:
+            completions_by_user.setdefault(job.user_id, []).append(job)
+
+        for user_id, jobs in completions_by_user.items():
+            latest_completed_at = max(j.completed_at for j in jobs)
+            diff_seconds = (now - latest_completed_at).total_seconds()
+
+            # If 1 minute of silence passed
+            if diff_seconds >= 60:
+                client = db.query(User).filter(User.id == user_id).first()
+                if client:
+                    stone_ids = [j.stone_id for j in jobs]
+                    stone_ids_str = ", ".join(stone_ids)
+                    count = len(jobs)
+
+                    # Send email to Client
+                    if client.email:
+                        subject = f"Stones Processing Completed"
+                        body = (
+                            f"Hello {client.company_name},\n\n"
+                            f"We have completed processing {count} of your uploaded stone files.\n\n"
+                            f"Completed Stone ID(s):\n{stone_ids_str}\n\n"
+                            f"You can now download the completed result files from the 'Completed Stones' tab on your client dashboard.\n\n"
+                            f"Regards,\n"
+                            f"Diamond Processing Admin Team"
+                        )
+                        send_email(client.email, subject, body)
+
+                    # Create in-app Notification for Client
+                    notification = Notification(
+                        user_id=client.id,
+                        title="Stones Processing Completed",
+                        message=f"Admin has completed processing {count} of your stones (IDs: {stone_ids_str})."
+                    )
+                    db.add(notification)
+
+                    # Mark all as notified
+                    for job in jobs:
+                        job.notified_client = True
+                    db.commit()
+                    print(f"[Worker] Sent completion notification to client {client.username} ({count} stones)")
+
+
 def run_worker() -> None:
     print("Worker started")
     while True:
@@ -20,8 +133,7 @@ def run_worker() -> None:
                 run_drive_sync_cycle(db, default_weight=settings.auto_drive_default_weight)
 
             enqueue_uploaded_jobs(db)
-            # Removed claim_next_job to disable automatic processing.
-            # Jobs must now be manually moved to Processing by an admin.
+            process_pending_notifications(db)
         except Exception as e:
             print(f"Worker error: {e}")
             time.sleep(settings.worker_poll_seconds)
@@ -32,3 +144,4 @@ def run_worker() -> None:
 
 if __name__ == "__main__":
     run_worker()
+

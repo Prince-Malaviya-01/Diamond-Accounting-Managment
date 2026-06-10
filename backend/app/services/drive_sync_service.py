@@ -207,7 +207,7 @@ def ingest_done_folder_for_key(db: Session, user: User, folder_key: str) -> int:
                     downloaded=False,
                     queue_entered_at=None,
                     processing_started_at=None,
-                    completed_at=datetime.now(timezone.utc),
+                    completed_at=get_ist_now_naive(),
                 )
                 db.add(job)
                 db.commit()
@@ -237,7 +237,7 @@ def ingest_done_folder_for_key(db: Session, user: User, folder_key: str) -> int:
             job.completed_path = str(target)
             job.status = JobStatus.completed
             job.downloaded = False
-            job.completed_at = datetime.now(timezone.utc)
+            job.completed_at = get_ist_now_naive()
             db.commit()
             print(f"Successfully marked job {stone_id} as completed.")
             completed += 1

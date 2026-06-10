@@ -29,6 +29,8 @@ class Job(Base):
     completed_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     status: Mapped[JobStatus] = mapped_column(SqlEnum(JobStatus), default=JobStatus.uploaded, nullable=False)
     downloaded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    notified_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    notified_client: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     priority: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     retries: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     queue_entered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

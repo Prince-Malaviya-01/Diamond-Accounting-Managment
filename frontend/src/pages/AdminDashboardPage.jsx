@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import api, { billingApi } from "../api";
 import LogoutButton from "../components/LogoutButton";
+import NotificationBell from "../components/NotificationBell";
 import Shell from "../components/Shell";
 import StatCard from "../components/StatCard";
 import ThemeToggle from "../components/ThemeToggle";
@@ -1624,6 +1625,7 @@ export default function AdminDashboardPage() {
         }} className="btn-secondary" style={{ marginRight: "10px", display: 'flex', alignItems: 'center', gap: '8px' }}>
           <UserPlus size={16} /> Add Client
         </button>
+        <NotificationBell />
         <ThemeToggle />
         <LogoutButton />
       </>
