@@ -32,5 +32,11 @@ with engine.connect() as conn:
         conn.commit()
         print("Success: Admin email updated.")
         
+        # Update Client email
+        print("Updating client email to sunnypatel403541@gmail.com...")
+        conn.execute(text("UPDATE users SET email = 'sunnypatel403541@gmail.com' WHERE username = 'Sunny' OR company_name = 'M Suresh';"))
+        conn.commit()
+        print("Success: Client email updated.")
+        
     except Exception as e:
         print(f"Error during migration: {e}")
