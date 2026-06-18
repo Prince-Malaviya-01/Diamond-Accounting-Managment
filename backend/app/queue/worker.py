@@ -38,39 +38,46 @@ def process_pending_notifications(db) -> None:
 
             # If 2 minutes of silence passed
             if diff_seconds >= 120:
-                client = db.query(User).filter(User.id == user_id).first()
-                if client:
-                    stone_ids = [j.stone_id for j in jobs]
-                    stone_ids_str = ", ".join(stone_ids)
-                    count = len(jobs)
+                # Atomically mark as notified in DB first to prevent duplicates
+                job_ids = [j.id for j in jobs]
+                updated_count = (
+                    db.query(Job)
+                    .filter(Job.id.in_(job_ids), Job.notified_admin == False)
+                    .update({"notified_admin": True}, synchronize_session=False)
+                )
+                db.commit()
 
-                    # Get admin user
-                    admin_user = db.query(User).filter(User.is_admin == True).first()
-                    if admin_user and admin_user.email:
-                        subject = f"New Stones Uploaded by {client.company_name}"
-                        body = (
-                            f"Hello Admin,\n\n"
-                            f"Client '{client.company_name}' (username: {client.username}) has uploaded {count} new stone file(s).\n\n"
-                            f"Stone ID(s):\n{stone_ids_str}\n\n"
-                            f"Please log in to the admin panel to process them.\n\n"
-                            f"Regards,\n"
-                            f"Diamond Portal Automated Engine"
+                # Only proceed if we were the one who actually marked these jobs
+                if updated_count > 0:
+                    client = db.query(User).filter(User.id == user_id).first()
+                    if client:
+                        stone_ids = [j.stone_id for j in jobs]
+                        stone_ids_str = ", ".join(stone_ids)
+                        count = len(jobs)
+
+                        # Get admin user
+                        admin_user = db.query(User).filter(User.is_admin == True).first()
+                        if admin_user and admin_user.email:
+                            subject = f"New Stones Uploaded by {client.company_name}"
+                            body = (
+                                f"Hello Admin,\n\n"
+                                f"Client '{client.company_name}' (username: {client.username}) has uploaded {count} new stone file(s).\n\n"
+                                f"Stone ID(s):\n{stone_ids_str}\n\n"
+                                f"Please log in to the admin panel to process them.\n\n"
+                                f"Regards,\n"
+                                f"Diamond Portal Automated Engine"
+                            )
+                            send_email(admin_user.email, subject, body)
+
+                        # Create in-app Notification for Admin
+                        notification = Notification(
+                            user_id=None,
+                            title="New Stones Uploaded",
+                            message=f"Client '{client.company_name}' uploaded {count} new stones (IDs: {stone_ids_str})."
                         )
-                        send_email(admin_user.email, subject, body)
-
-                    # Create in-app Notification for Admin
-                    notification = Notification(
-                        user_id=None,
-                        title="New Stones Uploaded",
-                        message=f"Client '{client.company_name}' uploaded {count} new stones (IDs: {stone_ids_str})."
-                    )
-                    db.add(notification)
-
-                    # Mark all as notified
-                    for job in jobs:
-                        job.notified_admin = True
-                    db.commit()
-                    print(f"[Worker] Sent upload notification to Admin for client {client.username} ({count} stones)")
+                        db.add(notification)
+                        db.commit()
+                        print(f"[Worker] Sent upload notification to Admin for client {client.username} ({count} stones)")
 
     # 2. ADMIN COMPLETIONS -> CLIENT NOTIFICATIONS (1-minute silence debounce)
     unnotified_completions = (
@@ -90,38 +97,45 @@ def process_pending_notifications(db) -> None:
 
             # If 1 minute of silence passed
             if diff_seconds >= 60:
-                client = db.query(User).filter(User.id == user_id).first()
-                if client:
-                    stone_ids = [j.stone_id for j in jobs]
-                    stone_ids_str = ", ".join(stone_ids)
-                    count = len(jobs)
+                # Atomically mark as notified in DB first to prevent duplicates
+                job_ids = [j.id for j in jobs]
+                updated_count = (
+                    db.query(Job)
+                    .filter(Job.id.in_(job_ids), Job.notified_client == False)
+                    .update({"notified_client": True}, synchronize_session=False)
+                )
+                db.commit()
 
-                    # Send email to Client
-                    if client.email:
-                        subject = f"Stones Processing Completed"
-                        body = (
-                            f"Hello {client.company_name},\n\n"
-                            f"We have completed processing {count} of your uploaded stone files.\n\n"
-                            f"Completed Stone ID(s):\n{stone_ids_str}\n\n"
-                            f"You can now download the completed result files from the 'Completed Stones' tab on your client dashboard.\n\n"
-                            f"Regards,\n"
-                            f"Diamond Processing Admin Team"
+                # Only proceed if we were the one who actually marked these jobs
+                if updated_count > 0:
+                    client = db.query(User).filter(User.id == user_id).first()
+                    if client:
+                        stone_ids = [j.stone_id for j in jobs]
+                        stone_ids_str = ", ".join(stone_ids)
+                        count = len(jobs)
+
+                        # Send email to Client
+                        if client.email:
+                            subject = f"Stones Processing Completed"
+                            body = (
+                                f"Hello {client.company_name},\n\n"
+                                f"We have completed processing {count} of your uploaded stone files.\n\n"
+                                f"Completed Stone ID(s):\n{stone_ids_str}\n\n"
+                                f"You can now download the completed result files from the 'Completed Stones' tab on your client dashboard.\n\n"
+                                f"Regards,\n"
+                                f"Diamond Processing Admin Team"
+                            )
+                            send_email(client.email, subject, body)
+
+                        # Create in-app Notification for Client
+                        notification = Notification(
+                            user_id=client.id,
+                            title="Stones Processing Completed",
+                            message=f"Admin has completed processing {count} of your stones (IDs: {stone_ids_str})."
                         )
-                        send_email(client.email, subject, body)
-
-                    # Create in-app Notification for Client
-                    notification = Notification(
-                        user_id=client.id,
-                        title="Stones Processing Completed",
-                        message=f"Admin has completed processing {count} of your stones (IDs: {stone_ids_str})."
-                    )
-                    db.add(notification)
-
-                    # Mark all as notified
-                    for job in jobs:
-                        job.notified_client = True
-                    db.commit()
-                    print(f"[Worker] Sent completion notification to client {client.username} ({count} stones)")
+                        db.add(notification)
+                        db.commit()
+                        print(f"[Worker] Sent completion notification to client {client.username} ({count} stones)")
 
 
 def run_worker() -> None:

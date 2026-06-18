@@ -94,6 +94,7 @@ export default function AdminDashboardPage() {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [driveStatus, setDriveStatus] = useState([]);
   const [message, setMessage] = useState("");
+  const [showRevenue, setShowRevenue] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
@@ -1633,22 +1634,44 @@ export default function AdminDashboardPage() {
       <div className="admin-main-content">
         {/* ── Stats ── */}
         {stats && (
-          <section className="stats-grid">
-            <StatCard label="Total Clients" value={stats.total_users}
-              icon={<Users size={20} />} color="blue" />
-            <StatCard label="Total Jobs" value={jobSummary?.total ?? stats.total_uploaded_jobs}
-              icon={<Package size={20} />} color="purple" />
-            <StatCard label="Pending" value={jobSummary?.pending ?? 0}
-              icon={<Clock size={20} />} color="orange" />
-            <StatCard label="Processing" value={stats.processing_jobs}
-              icon={<Loader2 size={20} />} color="blue" />
-            <StatCard label="Completed" value={jobSummary?.processed ?? stats.completed_jobs}
-              icon={<CheckCircle2 size={20} />} color="green" />
-            <StatCard label="Failed" value={jobSummary?.failed ?? 0}
-              icon={<XCircle size={20} />} color="red" />
-            <StatCard label="Revenue" value={`₹${Number(stats.monthly_revenue).toFixed(2)}`}
-              icon={<DollarSign size={20} />} color="green" />
-          </section>
+          <>
+            <section className="stats-grid">
+              <StatCard label="Total Clients" value={stats.total_users}
+                icon={<Users size={20} />} color="blue" />
+              <StatCard label="Total Jobs" value={jobSummary?.total ?? stats.total_uploaded_jobs}
+                icon={<Package size={20} />} color="purple" />
+              <StatCard label="Pending" value={jobSummary?.pending ?? 0}
+                icon={<Clock size={20} />} color="orange" />
+              <StatCard label="Processing" value={stats.processing_jobs}
+                icon={<Loader2 size={20} />} color="blue" />
+              <StatCard label="Completed" value={jobSummary?.processed ?? stats.completed_jobs}
+                icon={<CheckCircle2 size={20} />} color="green" />
+              <StatCard label="Failed" value={jobSummary?.failed ?? 0}
+                icon={<XCircle size={20} />} color="red" />
+            </section>
+
+            <div className="revenue-card-container">
+              <article className="stat-card revenue-card">
+                <div className="revenue-card-header">
+                  <div className="stat-icon green">
+                    <DollarSign size={20} />
+                  </div>
+                  <button 
+                    type="button" 
+                    className="revenue-eye-toggle-btn"
+                    onClick={() => setShowRevenue(!showRevenue)}
+                    aria-label={showRevenue ? "Hide revenue" : "Show revenue"}
+                  >
+                    {showRevenue ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <span className="stat-label">Revenue</span>
+                <strong className="stat-value">
+                  {showRevenue ? `₹${Number(stats.monthly_revenue).toFixed(2)}` : "₹••••••"}
+                </strong>
+              </article>
+            </div>
+          </>
         )}
 
         {/* ── Folder Monitor ── */}
