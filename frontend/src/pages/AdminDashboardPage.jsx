@@ -100,7 +100,10 @@ export default function AdminDashboardPage() {
   const [userFilter, setUserFilter] = useState("all");
   const [completedSearchTerm, setCompletedSearchTerm] = useState("");
   const [completedUserFilter, setCompletedUserFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("adminActiveTab") || "queue");
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem("adminActiveTab");
+    return saved && saved !== "files_backup" ? saved : "queue";
+  });
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [bulkCompleting, setBulkCompleting] = useState(false);
@@ -249,93 +252,7 @@ export default function AdminDashboardPage() {
     isDanger: false
   });
 
-  // Local Files Backup tab state
-  const [localServiceAvail, setLocalServiceAvail] = useState(false);
-  const [localBackupData, setLocalBackupData] = useState(null);
-  const [syncingBackup, setSyncingBackup] = useState(false);
-  
-  const [localServerUrl, setLocalServerUrl] = useState("http://localhost:8000");
-  const [localAdminUsername, setLocalAdminUsername] = useState("admin");
-  const [localAdminPassword, setLocalAdminPassword] = useState("");
-  const [savingLocalConfig, setSavingLocalConfig] = useState(false);
-  const [editLocalConfig, setEditLocalConfig] = useState(false);
-  
-  const [backupCompanyFilter, setBackupCompanyFilter] = useState("all");
-  const [backupDateFilter, setBackupDateFilter] = useState("");
 
-  const loadLocalBackupStatus = useCallback(async () => {
-    try {
-      const healthRes = await fetch("http://localhost:3001/health");
-      if (healthRes.ok) {
-        setLocalServiceAvail(true);
-        const statusRes = await fetch("http://localhost:3001/backup-status");
-        if (statusRes.ok) {
-          const data = await statusRes.json();
-          setLocalBackupData(data);
-          if (data.configured) {
-            setLocalServerUrl(data.server_url || "http://localhost:8000");
-            setLocalAdminUsername(data.username || "admin");
-          }
-        }
-      } else {
-        setLocalServiceAvail(false);
-      }
-    } catch {
-      setLocalServiceAvail(false);
-    }
-  }, []);
-
-  const handleTriggerLocalSync = async () => {
-    setSyncingBackup(true);
-    showMsg("Triggering instant local backup sync...");
-    try {
-      const res = await fetch("http://localhost:3001/sync-now", { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        showMsg(data.message || "✓ Sync completed!");
-        await loadLocalBackupStatus();
-      } else {
-        showMsg("❌ Sync failed on local backup client");
-      }
-    } catch {
-      showMsg("❌ Failed to communicate with local backup client");
-    } finally {
-      setSyncingBackup(false);
-    }
-  };
-
-  const handleSaveLocalConfig = async (e) => {
-    e.preventDefault();
-    if (!localServerUrl || !localAdminUsername || !localAdminPassword) {
-      showMsg("Please fill all fields!");
-      return;
-    }
-    setSavingLocalConfig(true);
-    showMsg("Connecting local service to server...");
-    try {
-      const res = await fetch("http://localhost:3001/configure-server", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          server_url: localServerUrl,
-          username: localAdminUsername,
-          password: localAdminPassword
-        })
-      });
-      if (res.ok) {
-        showMsg("✓ Connected successfully and started sync!");
-        setEditLocalConfig(false);
-        await loadLocalBackupStatus();
-      } else {
-        const err = await res.json();
-        showMsg(`❌ Connection failed: ${err.detail || "Unknown error"}`);
-      }
-    } catch {
-      showMsg("❌ Failed to communicate with local backup client on port 3001");
-    } finally {
-      setSavingLocalConfig(false);
-    }
-  };
 
   const getRateFromConfig = useCallback((weight, atTime = null) => {
     if (!weight) return 0;
@@ -717,16 +634,14 @@ export default function AdminDashboardPage() {
     loadPending();
     loadPriceConfig("global"); // Always load global prices for revenue calculations
     loadProfits(); // Load profits for the account tab
-    loadLocalBackupStatus(); // Check local file service and status
     
     const iv = setInterval(() => {
       load().catch(() => { });
       loadPending().catch(() => { });
       loadProfits().catch(() => { });
-      loadLocalBackupStatus().catch(() => { });
     }, 10000); // 10s auto-refresh
     return () => { clearInterval(iv); clearTimeout(msgTimer.current); };
-  }, [load, loadPending, loadPriceConfig, loadProfits, loadLocalBackupStatus]);
+  }, [load, loadPending, loadPriceConfig, loadProfits]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
@@ -738,10 +653,8 @@ export default function AdminDashboardPage() {
     if (activeTab === "accounts_profit") {
       loadProfits();
       loadPriceConfig("global");
-    } else if (activeTab === "files_backup") {
-      loadLocalBackupStatus();
     }
-  }, [activeTab, loadProfits, loadPriceConfig, loadLocalBackupStatus]);
+  }, [activeTab, loadProfits, loadPriceConfig]);
 
   // Auto horizontal scroll tab bar to bring the active tab into view
   useEffect(() => {
@@ -1360,10 +1273,6 @@ export default function AdminDashboardPage() {
   };
 
   const uniqueUsers = useMemo(() => [...new Set(jobs.map(j => j.user))].sort(), [jobs]);
-  const backupClients = useMemo(() => {
-    const uploadJobs = jobs.filter(j => j.status !== "Failed" && j.upload_filename);
-    return [...new Set(uploadJobs.map(j => j.user).filter(Boolean))].sort();
-  }, [jobs]);
   const nonAdminUsers = useMemo(() => users.filter(u => !u.is_admin), [users]);
 
   const isJobFullyCompleted = useCallback((j) => {
@@ -1470,25 +1379,7 @@ export default function AdminDashboardPage() {
     return result;
   }, [jobs, completedUserFilter, completedSearchTerm, isJobFullyCompleted]);
 
-  const filteredBackupJobs = useMemo(() => {
-    let result = jobs.filter(j => j.status !== "Failed" && j.upload_filename);
-    
-    // 1. Company Filter
-    if (backupCompanyFilter !== "all") {
-      result = result.filter(j => j.user === backupCompanyFilter);
-    }
-    
-    // 2. Date Filter
-    if (backupDateFilter) {
-      const selected = new Date(backupDateFilter).toDateString();
-      result = result.filter(j => {
-        if (!j.upload_time) return false;
-        return new Date(j.upload_time).toDateString() === selected;
-      });
-    }
-    
-    return result;
-  }, [jobs, backupCompanyFilter, backupDateFilter]);
+
 
   // Billing totals
   const billingTotals = useMemo(() => {
@@ -1541,7 +1432,6 @@ export default function AdminDashboardPage() {
     { key: "pricing", label: "Weight & Price", icon: <DollarSign size={16} /> },
     { key: "accounts_profit", label: "Accounts Profit", icon: <TrendingUp size={16} /> },
     { key: "backup_restore", label: "Backup & Restore", icon: <Database size={16} /> },
-    { key: "files_backup", label: "Files Backup", icon: <FolderOpen size={16} /> },
     { key: "completed_files", label: "Completed Files", icon: <CheckCircle2 size={16} /> },
     { key: "logs", label: "System Logs", icon: <Activity size={16} /> },
   ];
@@ -3560,246 +3450,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* ── Tab: Files Backup ── */}
-        {activeTab === "files_backup" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            
-            {/* Backup Engine Health Status Card */}
-            <div className="panel" style={{ padding: "20px 24px" }}>
-              <div className="panel-header" style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: "12px", marginBottom: "16px" }}>
-                <div className="panel-title">
-                  <div className={`panel-icon ${localServiceAvail ? "green" : "red"}`}><FolderOpen size={18} /></div>
-                  <h3>Local Backup Sync Client Status</h3>
-                </div>
-                <span className={`status-badge ${localServiceAvail ? "completed" : "failed"}`}>
-                  {localServiceAvail ? "CONNECTED" : "DISCONNECTED"}
-                </span>
-              </div>
-              
-              {!localServiceAvail ? (
-                <div style={{ padding: "10px 0", textAlign: "center" }}>
-                  <div style={{ color: "var(--failed)", background: "var(--failed-bg)", border: "1px solid var(--failed-light)", padding: "16px", borderRadius: "8px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", margin: "10px 0 20px 0" }}>
-                    <AlertCircle size={32} />
-                    <h4 style={{ margin: 0, fontWeight: 700 }}>Local File Service is Not Running</h4>
-                    <p style={{ margin: 0, fontSize: "0.88rem", maxWidth: "500px", lineHeight: "1.6" }}>
-                      Aapke computer par local sync and file service chalu nahi hai. Backup ticks aur automatic local directory folder updates dekhne ke liye, please local machine ke terminal par niche di gayi command run karein:
-                    </p>
-                    <code style={{ background: "rgba(0,0,0,0.15)", color: "var(--text)", padding: "6px 12px", borderRadius: "4px", fontSize: "0.9rem", fontWeight: 700, marginTop: "8px", fontFamily: "monospace" }}>
-                      python backend/local_file_service.py
-                    </code>
-                  </div>
-                  <button className="btn-primary" onClick={loadLocalBackupStatus} style={{ height: "40px", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                    <RefreshCw size={16} /> Recheck Connection
-                  </button>
-                </div>
-              ) : (!localBackupData?.configured || editLocalConfig) ? (
-                <div style={{ padding: "10px 0" }}>
-                  <div style={{ color: "var(--warning)", background: "var(--warning-bg)", border: "1px solid var(--warning-light)", padding: "16px", borderRadius: "8px", display: "flex", gap: "12px", alignItems: "center", marginBottom: "20px" }}>
-                    <AlertCircle size={20} />
-                    <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>
-                      {editLocalConfig ? "Edit local backup configuration settings below:" : "Backup sync is not configured yet. Please link your local backup script to the server by entering the details below:"}
-                    </span>
-                  </div>
-                  
-                  <form onSubmit={handleSaveLocalConfig} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px", alignItems: "flex-end" }}>
-                    <div className="filter-group">
-                      <label>AWS Server/Local URL</label>
-                      <input 
-                        type="text" 
-                        value={localServerUrl} 
-                        onChange={(e) => setLocalServerUrl(e.target.value)} 
-                        placeholder="e.g. http://localhost:8000"
-                        style={{ marginBottom: 0 }}
-                      />
-                    </div>
-                    <div className="filter-group">
-                      <label>Admin Username</label>
-                      <input 
-                        type="text" 
-                        value={localAdminUsername} 
-                        onChange={(e) => setLocalAdminUsername(e.target.value)} 
-                        placeholder="admin"
-                        style={{ marginBottom: 0 }}
-                      />
-                    </div>
-                    <div className="filter-group">
-                      <label>Admin Password</label>
-                      <input 
-                        type="password" 
-                        value={localAdminPassword} 
-                        onChange={(e) => setLocalAdminPassword(e.target.value)} 
-                        placeholder="Password"
-                        style={{ marginBottom: 0 }}
-                      />
-                    </div>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      {localBackupData?.configured && (
-                        <button 
-                          type="button" 
-                          className="btn-secondary" 
-                          onClick={() => setEditLocalConfig(false)}
-                          style={{ height: "38px", display: "flex", justifyContent: "center", alignItems: "center" }}
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      <button 
-                        type="submit" 
-                        className="btn-primary" 
-                        disabled={savingLocalConfig} 
-                        style={{ height: "38px", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", flex: 1 }}
-                      >
-                        {savingLocalConfig ? <Loader2 size={16} className="spin" /> : <Check size={16} />}
-                        Save & Connect
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
-                    <div style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
-                      <div>💾 <strong>Backup Directory:</strong> <code style={{ background: "var(--border-light)", padding: "2px 6px", borderRadius: "4px" }}>{localBackupData?.backup_root || "D:\\Diamond_Backup_Files"}</code></div>
-                      <div style={{ marginTop: "6px" }}>🔄 <strong>Last Sync Status:</strong> <span style={{ color: "var(--primary)", fontWeight: 600 }}>{localBackupData?.status_log || "Checking..."}</span></div>
-                    </div>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <button 
-                        className="btn-secondary" 
-                        onClick={() => {
-                          setLocalAdminPassword("");
-                          setEditLocalConfig(true);
-                        }}
-                        style={{ height: "40px", display: "flex", alignItems: "center", gap: "8px" }}
-                      >
-                        <Edit size={16} />
-                        Configure Server
-                      </button>
-                      <button 
-                        className="btn-primary" 
-                        onClick={handleTriggerLocalSync} 
-                        disabled={syncingBackup}
-                        style={{ height: "40px", display: "flex", alignItems: "center", gap: "8px" }}
-                      >
-                        {syncingBackup ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />}
-                        {syncingBackup ? "Synchronizing..." : "Sync & Refresh Ticks"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {/* Client Backup Details Grid */}
-            {localServiceAvail && (
-              <div className="panel" style={{ marginTop: "0" }}>
-                <div className="panel-header" style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: "12px", marginBottom: "16px" }}>
-                  <div className="panel-title">
-                    <div className="panel-icon purple"><Users size={18} /></div>
-                    <h3>Client Folders & Backup Files (D:\Diamond_Backup_Files)</h3>
-                  </div>
-                </div>
-                
-                {/* Backup Filters Row */}
-                <div style={{ display: "flex", gap: "20px", padding: "0 24px 20px 24px", borderBottom: "1px solid var(--border-light)", marginBottom: "20px", flexWrap: "wrap", alignItems: "center" }}>
-                  <div className="filter-group" style={{ margin: 0, flex: "0 0 220px" }}>
-                    <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "6px", display: "block" }}>Filter by Client</label>
-                    <CustomSelect 
-                      options={[
-                        { label: "All Clients", value: "all" },
-                        ...backupClients.map(u => ({ label: u, value: u }))
-                      ]}
-                      value={backupCompanyFilter}
-                      onChange={setBackupCompanyFilter}
-                    />
-                  </div>
-                  
-                  <div className="filter-group" style={{ margin: 0, flex: "0 0 220px" }}>
-                    <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "6px", display: "block" }}>Filter by Date</label>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <CustomDatePicker 
-                        value={backupDateFilter}
-                        onChange={setBackupDateFilter}
-                        placeholder="ALL DATES"
-                      />
-                      {backupDateFilter && (
-                        <button 
-                          className="btn-ghost btn-sm" 
-                          onClick={() => setBackupDateFilter("")}
-                          style={{ padding: "8px 12px", border: "1px solid var(--border)", height: "38px" }}
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Client / Company</th>
-                        <th>Stone ID</th>
-                        <th>File Name</th>
-                        <th>Upload Time</th>
-                        <th style={{ textAlign: "center" }}>Backup Status</th>
-                        <th style={{ textAlign: "right" }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredBackupJobs.map((j, idx) => {
-                        const clientName = j.user || "unknown";
-                        const filename = j.upload_filename || "";
-                        
-                        // Sanitize client name for matching local_files keys (exactly as Python does)
-                        const safeClientName = clientName.trim().replace(/[^a-zA-Z0-9 ._-]/g, "_");
-                        
-                        // Check if file exists in local sync client list
-                        const isBackedUp = localBackupData?.local_files?.[safeClientName]?.includes(filename) || false;
-                        
-                        return (
-                          <tr key={`${j.id}-${idx}`}>
-                            <td><strong>{clientName}</strong></td>
-                            <td style={{ fontWeight: 600, color: "var(--primary)" }}>{j.stone_id}</td>
-                            <td>
-                              <span style={{ fontSize: "0.85rem", opacity: 0.85 }}>{filename || "no_file.adv"}</span>
-                            </td>
-                            <td style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                              {j.upload_time ? new Date(j.upload_time).toLocaleString('en-GB') : "-"}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {isBackedUp ? (
-                                <span className="status-badge completed" style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                                  <CheckCircle2 size={12} /> Backed Up ✅
-                                </span>
-                              ) : (
-                                <span className="status-badge queued" style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                                  <Clock size={12} /> Pending Backup ⏳
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ textAlign: "right" }}>
-                              {j.upload_available ? (
-                                <button className="btn-primary btn-sm"
-                                  onClick={() => downloadFile(`/admin/jobs/${j.id}/upload`, filename || `upload_${j.id}`)}>
-                                  <Download size={13} /> Download
-                                </button>
-                              ) : <span className="muted">—</span>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {!filteredBackupJobs.length && (
-                        <tr><td colSpan={6}><div className="empty-state"><Package size={28} /><p>No matching files found</p></div></td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-            
-          </div>
-        )}
 
         {/* ── Tab: Completed Files ── */}
         {activeTab === "completed_files" && (
