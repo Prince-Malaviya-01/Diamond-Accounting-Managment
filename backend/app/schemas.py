@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.job import JobStatus
 
@@ -117,6 +117,16 @@ class PriceConfigUpdate(BaseModel):
 class UpdateWeightRequest(BaseModel):
     job_id: int
     weight: float
+
+    @field_validator("weight")
+    @classmethod
+    def validate_weight(cls, v: float) -> float:
+        import math
+        if math.isnan(v):
+            raise ValueError("Weight cannot be NaN (Not a Number)")
+        if v < 0:
+            raise ValueError("Weight cannot be negative")
+        return v
 
 class ApplyRetroactivePricingRequest(BaseModel):
     user_id: Optional[int] = None # None means global

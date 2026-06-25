@@ -100,9 +100,18 @@ export default function AdminDashboardPage() {
   const [userFilter, setUserFilter] = useState("all");
   const [completedSearchTerm, setCompletedSearchTerm] = useState("");
   const [completedUserFilter, setCompletedUserFilter] = useState("all");
+
+  // Completed files date filter state
+  const [completedDateFilter, setCompletedDateFilter] = useState({
+    type: "ALL",
+    singleDate: "",
+    dates: [],
+    startDate: "",
+    endDate: ""
+  });
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem("adminActiveTab");
-    return saved && saved !== "files_backup" ? saved : "queue";
+    return saved && saved !== "files_backup" && saved !== "accounts_profit" && saved !== "logs" ? saved : "queue";
   });
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -181,58 +190,7 @@ export default function AdminDashboardPage() {
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [minDate, setMinDate] = useState("");
 
-  // Accounts Profit state
-  const [profitUserId, setProfitUserId] = useState("");
-  const [profitAmount, setProfitAmount] = useState("");
-  const [profitPaymentMode, setProfitPaymentMode] = useState("Cash");
-  const [recordedProfits, setRecordedProfits] = useState([]);
-  const [submittingProfit, setSubmittingProfit] = useState(false);
-  const [accProfitMonth, setAccProfitMonth] = useState("all");
-  const [accProfitYear, setAccProfitYear] = useState("all");
-  const [accProfitClient, setAccProfitClient] = useState("all");
-  const [showEditProfitModal, setShowEditProfitModal] = useState(false);
-  const [editProfitForm, setEditProfitForm] = useState({
-    id: null,
-    company: "",
-    amount: "",
-    payment_mode: "Cash",
-    remarks: ""
-  });
-  const [editingProfitLoading, setEditingProfitLoading] = useState(false);
 
-  const handleOpenEditProfitModal = (p) => {
-    setEditProfitForm({
-      id: p.id,
-      company: p.company,
-      amount: String(p.amount),
-      payment_mode: p.payment_mode || "Cash",
-      remarks: p.remarks || ""
-    });
-    setShowEditProfitModal(true);
-  };
-
-  const handleSaveEditProfit = async (e) => {
-    e.preventDefault();
-    if (!editProfitForm.amount) {
-      showMsg("Please enter amount");
-      return;
-    }
-    setEditingProfitLoading(true);
-    try {
-      await api.post(`/admin/update-profit/${editProfitForm.id}`, {
-        amount: parseFloat(editProfitForm.amount),
-        payment_mode: editProfitForm.payment_mode,
-        remarks: editProfitForm.remarks
-      });
-      showMsg("Profit entry updated successfully");
-      setShowEditProfitModal(false);
-      await Promise.all([loadProfits(), load()]);
-    } catch {
-      showMsg("Failed to update profit entry");
-    } finally {
-      setEditingProfitLoading(false);
-    }
-  };
 
   // Backup & Restore state
   const [backupFile, setBackupFile] = useState(null);
@@ -293,78 +251,7 @@ export default function AdminDashboardPage() {
     return getRateFromConfig(job.weight, job.upload_time);
   }, [getRateFromConfig]);
 
-  const filteredAccountData = useMemo(() => {
-    const userStats = {};
-    const nonAdmin = users.filter(u => !u.is_admin);
-    
-    nonAdmin.forEach(u => {
-      userStats[u.id] = { user_id: u.id, company: u.company_name, revenue: 0 };
-    });
 
-    jobs.forEach(j => {
-      if (j.status !== "Completed") return;
-      const date = new Date(j.upload_time);
-      const m = date.getMonth() + 1;
-      const y = date.getFullYear();
-
-      const monthMatch = accProfitMonth === "all" || m === Number(accProfitMonth);
-      const yearMatch = accProfitYear === "all" || y === Number(accProfitYear);
-
-      if (monthMatch && yearMatch) {
-        // Find user ID by company name (matching backend logic)
-        const user = nonAdmin.find(u => u.company_name === j.user);
-        if (user && userStats[user.id]) {
-          const rate = getCalculatedRate(j);
-          userStats[user.id].revenue += (j.weight || 0) * rate;
-        }
-      }
-    });
-
-    let data = Object.values(userStats);
-    if (accProfitClient !== "all") {
-      data = data.filter(a => a.user_id === Number(accProfitClient));
-    }
-    return data.sort((a, b) => b.revenue - a.revenue);
-  }, [jobs, users, accProfitMonth, accProfitYear, accProfitClient, getCalculatedRate]);
-
-  const filteredReceivedTotals = useMemo(() => {
-    const totals = {};
-    recordedProfits.forEach(p => {
-      const date = new Date(p.created_at);
-      const m = date.getMonth() + 1;
-      const y = date.getFullYear();
-
-      const monthMatch = accProfitMonth === "all" || m === Number(accProfitMonth);
-      const yearMatch = accProfitYear === "all" || y === Number(accProfitYear);
-
-      if (monthMatch && yearMatch) {
-        if (accProfitClient === "all" || p.user_id === Number(accProfitClient)) {
-          totals[p.user_id] = (totals[p.user_id] || 0) + p.amount;
-        }
-      }
-    });
-    return totals;
-  }, [recordedProfits, accProfitMonth, accProfitYear, accProfitClient]);
-
-  const filteredRecordedProfits = useMemo(() => {
-    return recordedProfits.filter(p => {
-      const date = new Date(p.created_at);
-      const m = date.getMonth() + 1;
-      const y = date.getFullYear();
-
-      const monthMatch = accProfitMonth === "all" || m === Number(accProfitMonth);
-      const yearMatch = accProfitYear === "all" || y === Number(accProfitYear);
-      const clientMatch = accProfitClient === "all" || p.user_id === Number(accProfitClient);
-
-      return monthMatch && yearMatch && clientMatch;
-    });
-  }, [recordedProfits, accProfitMonth, accProfitYear, accProfitClient]);
-
-  const accProfitTotals = useMemo(() => {
-    const revenue = filteredAccountData.reduce((s, i) => s + i.revenue, 0);
-    const received = Object.values(filteredReceivedTotals).reduce((s, v) => s + v, 0);
-    return { revenue, received, pending: revenue - received };
-  }, [filteredAccountData, filteredReceivedTotals]);
 
   const showMsg = (text) => {
     setMessage(text);
@@ -409,7 +296,7 @@ export default function AdminDashboardPage() {
   }, [logFilter]);
 
   useEffect(() => {
-    if (activeTab === "logs" || activeTab === "analytics") {
+    if (activeTab === "analytics") {
       loadLogs();
     }
   }, [activeTab, loadLogs]);
@@ -486,48 +373,7 @@ export default function AdminDashboardPage() {
     } catch { showMsg("Failed to load user account"); }
   }, [billingYear, billingMonth]);
 
-  const loadProfits = useCallback(async () => {
-    try {
-      const res = await api.get("/admin/profits");
-      setRecordedProfits(res.data);
-    } catch { console.error("Failed to load profits"); }
-  }, []);
 
-  const handleRecordProfit = async () => {
-    if (!profitUserId || !profitAmount) {
-      showMsg("Please select a user and enter amount");
-      return;
-    }
-    setSubmittingProfit(true);
-    try {
-      await api.post("/admin/record-profit", {
-        user_id: Number(profitUserId),
-        amount: parseFloat(profitAmount),
-        payment_mode: profitPaymentMode,
-        remarks: "Manual entry"
-      });
-      showMsg("Profit recorded successfully");
-      setProfitAmount("");
-      loadProfits();
-    } catch {
-      showMsg("Failed to record profit");
-    } finally {
-      setSubmittingProfit(false);
-    }
-  };
-
-  const handleDownloadAccountStatement = async (uid, company) => {
-    try {
-      showMsg("Generating Statement PDF...");
-      const params = {};
-      if (accProfitMonth !== "all") params.month = accProfitMonth;
-      if (accProfitYear !== "all") params.year = accProfitYear;
-      
-      const res = await api.get(`/admin/user-account-pdf/${uid}`, { params, responseType: "blob" });
-      saveBlob(res.data, `statement_${company}_${accProfitMonth}_${accProfitYear}.pdf`);
-      showMsg("✓ Statement downloaded");
-    } catch { showMsg("Failed to download statement"); }
-  };
 
   const checkUndoStatus = useCallback(async () => {
     try {
@@ -633,15 +479,13 @@ export default function AdminDashboardPage() {
     load().catch(() => showMsg("Failed to load admin dashboard"));
     loadPending();
     loadPriceConfig("global"); // Always load global prices for revenue calculations
-    loadProfits(); // Load profits for the account tab
     
     const iv = setInterval(() => {
       load().catch(() => { });
       loadPending().catch(() => { });
-      loadProfits().catch(() => { });
     }, 10000); // 10s auto-refresh
     return () => { clearInterval(iv); clearTimeout(msgTimer.current); };
-  }, [load, loadPending, loadPriceConfig, loadProfits]);
+  }, [load, loadPending, loadPriceConfig]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
@@ -650,11 +494,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     localStorage.setItem("adminActiveTab", activeTab);
-    if (activeTab === "accounts_profit") {
-      loadProfits();
-      loadPriceConfig("global");
-    }
-  }, [activeTab, loadProfits, loadPriceConfig]);
+  }, [activeTab]);
 
   // Auto horizontal scroll tab bar to bring the active tab into view
   useEffect(() => {
@@ -1336,10 +1176,41 @@ export default function AdminDashboardPage() {
     // Keep only jobs that ARE fully completed (Completed + proper weight & price)
     let result = jobs.filter(j => isJobFullyCompleted(j));
 
-    // 1. User Filter & Date Restriction
-    if (completedUserFilter === "all") {
-      if (!completedSearchTerm) {
-        // Show completed jobs from today and yesterday when search is empty
+    // 1. User Filter
+    if (completedUserFilter !== "all") {
+      result = result.filter(j => j.user === completedUserFilter);
+    }
+
+    // 2. Date Filter
+    if (completedDateFilter.type !== "ALL") {
+      result = result.filter(j => {
+        if (!j.completed_at) return false;
+        const jobDate = new Date(j.completed_at);
+        const y = jobDate.getFullYear();
+        const m = jobDate.getMonth() + 1;
+        const d = jobDate.getDate();
+        const jobDateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+        if (completedDateFilter.type === "SINGLE") {
+          return jobDateStr === completedDateFilter.singleDate;
+        } else if (completedDateFilter.type === "DAYS") {
+          return completedDateFilter.dates.includes(jobDateStr);
+        } else if (completedDateFilter.type === "RANGE") {
+          const start = completedDateFilter.startDate;
+          const end = completedDateFilter.endDate;
+          if (start && end) {
+            return jobDateStr >= start && jobDateStr <= end;
+          } else if (start) {
+            return jobDateStr >= start;
+          } else if (end) {
+            return jobDateStr <= end;
+          }
+        }
+        return true;
+      });
+    } else {
+      // If Date Filter is ALL, but completedUserFilter is all and search is empty, we can keep the default today & yesterday cutoff
+      if (completedUserFilter === "all" && !completedSearchTerm) {
         const now = new Date();
         const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
         cutoff.setHours(0, 0, 0, 0);
@@ -1350,11 +1221,9 @@ export default function AdminDashboardPage() {
           return jobDate >= cutoff;
         });
       }
-    } else {
-      result = result.filter(j => j.user === completedUserFilter);
     }
 
-    // 2. Search Filter (user, stone id, price, status, upload time)
+    // 3. Search Filter (user, stone id, price, status, upload time)
     if (completedSearchTerm) {
       const term = completedSearchTerm.toLowerCase();
       result = result.filter(j => {
@@ -1377,7 +1246,7 @@ export default function AdminDashboardPage() {
     }
 
     return result;
-  }, [jobs, completedUserFilter, completedSearchTerm, isJobFullyCompleted]);
+  }, [jobs, completedUserFilter, completedSearchTerm, completedDateFilter, isJobFullyCompleted]);
 
 
 
@@ -1430,10 +1299,8 @@ export default function AdminDashboardPage() {
     { key: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
     { key: "billing", label: "Billing & Accounts", icon: <Receipt size={16} /> },
     { key: "pricing", label: "Weight & Price", icon: <DollarSign size={16} /> },
-    { key: "accounts_profit", label: "Accounts Profit", icon: <TrendingUp size={16} /> },
     { key: "backup_restore", label: "Backup & Restore", icon: <Database size={16} /> },
     { key: "completed_files", label: "Completed Files", icon: <CheckCircle2 size={16} /> },
-    { key: "logs", label: "System Logs", icon: <Activity size={16} /> },
   ];
 
 
@@ -1564,75 +1431,7 @@ export default function AdminDashboardPage() {
           </>
         )}
 
-        {/* ── Folder Monitor ── */}
-        <div className="panel">
-          <div className="panel-header">
-            <div className="panel-title">
-              <div className="panel-icon orange"><FolderOpen size={18} /></div>
-              <h3>Auto Folder Monitor</h3>
-            </div>
-            <span className="panel-badge orange">Live</span>
-          </div>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th>Username</th>
-                  <th>Folder Key</th>
-                  <th>Stone Files</th>
-                  <th>Done Files</th>
-                  <th>Path</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {driveStatus.length ? driveStatus.map((row, idx) => (
-                  <tr key={`${row.user_id}-${row.folder_key}-${idx}`}>
-                    <td 
-                      style={{ cursor: "pointer" }} 
-                      onClick={() => { setActiveTab("billing"); loadUserAccount(row.user_id); }}
-                    >
-                      <strong className="text-primary-hover">{row.company_name}</strong>
-                    </td>
-                    <td 
-                      style={{ cursor: "pointer" }} 
-                      onClick={() => { setActiveTab("billing"); loadUserAccount(row.user_id); }}
-                      className="text-primary-hover"
-                    >
-                      {row.username}
-                    </td>
-                    <td><code style={{ background: "var(--border-light)", color: "var(--text)", padding: "2px 6px", borderRadius: 4, fontSize: ".82rem" }}>{row.folder_key}</code></td>
-                    <td>
-                      <span className={`status-badge ${row.stone_files > 0 ? "uploaded" : "completed"}`}>
-                        {row.stone_files}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${row.done_files > 0 ? "processing" : "completed"}`}>
-                        {row.done_files}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: ".82rem", color: "var(--text-secondary)" }}>{row.path}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <button
-                        onClick={() => handleDeleteUser(row.user_id, row.username)}
-                        className="btn-icon red"
-                        title="Delete User and Data"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr><td colSpan={7}>
-                    <div className="empty-state"><FolderOpen size={28} /><p>No folder data</p></div>
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+
 
         {/* ── Tabs ── */}
         <div className="tab-bar" ref={tabBarRef}>
@@ -1667,38 +1466,40 @@ export default function AdminDashboardPage() {
                   </>
                 )}
                 
-                {/* Always show Bulk Complete / Upload Results button */}
-                <label 
-                  className={`btn-primary btn-sm ${bulkCompleting ? "disabled" : ""}`} 
-                  style={{ 
-                    cursor: bulkCompleting ? "not-allowed" : "pointer", 
-                    display: "inline-flex", 
-                    alignItems: "center", 
-                    gap: "6px", 
-                    margin: 0, 
-                    padding: "6px 12px", 
-                    borderRadius: "6px", 
-                    fontSize: "0.82rem",
-                    opacity: bulkCompleting ? 0.6 : 1
-                  }} 
-                  title="Bulk Complete"
-                >
-                  {bulkCompleting ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-                  {bulkCompleting 
-                    ? (bulkCompleteProgress 
-                        ? `Uploading ${bulkCompleteProgress.current}/${bulkCompleteProgress.total}` 
-                        : "Completing...")
-                    : (selectedJobs.length > 0 ? "Bulk Complete" : "Bulk Upload Results")}
-                  {!bulkCompleting && (
-                    <input 
-                      type="file" 
-                      multiple 
-                      style={{ display: "none" }} 
-                      onChange={handleBulkCompleteUpload} 
-                      disabled={loading}
-                    />
-                  )}
-                </label>
+                {/* Show Bulk Complete button only when jobs are selected, or during completion process */}
+                {(selectedJobs.length > 0 || bulkCompleting) && (
+                  <label 
+                    className={`btn-primary btn-sm ${bulkCompleting ? "disabled" : ""}`} 
+                    style={{ 
+                      cursor: bulkCompleting ? "not-allowed" : "pointer", 
+                      display: "inline-flex", 
+                      alignItems: "center", 
+                      gap: "6px", 
+                      margin: 0, 
+                      padding: "6px 12px", 
+                      borderRadius: "6px", 
+                      fontSize: "0.82rem",
+                      opacity: bulkCompleting ? 0.6 : 1
+                    }} 
+                    title="Bulk Complete"
+                  >
+                    {bulkCompleting ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+                    {bulkCompleting 
+                      ? (bulkCompleteProgress 
+                          ? `Uploading ${bulkCompleteProgress.current}/${bulkCompleteProgress.total}` 
+                          : "Completing...")
+                      : "Bulk Complete"}
+                    {!bulkCompleting && (
+                      <input 
+                        type="file" 
+                        multiple 
+                        style={{ display: "none" }} 
+                        onChange={handleBulkCompleteUpload} 
+                        disabled={loading}
+                      />
+                    )}
+                  </label>
+                )}
 
                 {selectedJobs.length > 0 && !bulkCompleting && (
                   <>
@@ -2074,15 +1875,24 @@ export default function AdminDashboardPage() {
                       const userJobs = jobs.filter(j => j.user === u.company_name);
                       const userCompleted = userJobs.filter(j => j.status === "Completed").length;
                       return (
-                        <tr key={u.id}>
+                        <tr 
+                          key={u.id}
+                          className={u.is_admin ? "" : "clickable-row"}
+                          onClick={() => {
+                            if (!u.is_admin) {
+                              setActiveTab("billing");
+                              loadUserAccount(u.id);
+                            }
+                          }}
+                        >
                           <td>{u.id}</td>
-                          <td><strong>{u.company_name}</strong></td>
+                          <td><strong className={u.is_admin ? "" : "text-primary-hover"}>{u.company_name}</strong></td>
                           <td>
                             <div className="profile-bar" style={{ padding: "6px 10px", margin: 0, background: "transparent" }}>
                               <div className="profile-avatar" style={{ width: 30, height: 30, fontSize: ".8rem" }}>
                                 {u.username?.charAt(0).toUpperCase()}
                               </div>
-                              <span>{u.username}</span>
+                              <span className={u.is_admin ? "" : "text-primary-hover"}>{u.username}</span>
                             </div>
                           </td>
                           <td>
@@ -2104,7 +1914,7 @@ export default function AdminDashboardPage() {
                           <td style={{ fontSize: ".82rem" }}>{new Date(u.created_at).toLocaleDateString('en-GB')}</td>
                           <td>
                             {!u.is_admin && (
-                              <button className="btn-ghost btn-sm" onClick={() => { setActiveTab("billing"); loadUserAccount(u.id); }}>
+                              <button className="btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setActiveTab("billing"); loadUserAccount(u.id); }}>
                                 <Eye size={13} /> View
                               </button>
                             )}
@@ -2185,27 +1995,128 @@ export default function AdminDashboardPage() {
 
             {/* Activity Logs */}
             <div className="panel">
-              <div className="panel-header">
+              <div className="panel-header" style={{ marginBottom: "15px" }}>
                 <div className="panel-title">
                   <div className="panel-icon purple"><Activity size={18} /></div>
                   <h3>Recent Activity</h3>
                 </div>
                 <span className="panel-badge purple">{logs.length}</span>
               </div>
-              <div className="log-list">
-                {logs.slice(0, 12).map((log, idx) => (
-                  <div key={idx} className="log-item">
-                    <span className="log-action">{log.action}</span>
-                    <span className="log-details">{log.details}</span>
-                    {log.created_at && (
-                      <span style={{ fontSize: ".75rem", color: "var(--text-light)", whiteSpace: "nowrap" }}>
-                        {new Date(log.created_at).toLocaleString()}
-                      </span>
-                    )}
+
+              {/* Filters from Logs Tab */}
+              <div className="filter-row" style={{ marginBottom: 20, flexWrap: 'wrap', gap: 15, alignItems: 'flex-end' }}>
+                <div className="filter-group" style={{ marginBottom: 0 }}>
+                  <label>Filter Type</label>
+                  <CustomSelect 
+                    options={[
+                      { label: "Today & Yesterday", value: "DEFAULT" },
+                      { label: "Multiple Dates", value: "DAYS" },
+                      { label: "Date Range", value: "RANGE" }
+                    ]}
+                    value={logFilter.type}
+                    onChange={(val) => setLogFilter(p => ({ ...p, type: val }))}
+                    style={{ width: 220 }}
+                  />
+                </div>
+
+                {logFilter.type === "DAYS" && (
+                  <div className="filter-group" style={{ marginBottom: 0 }}>
+                    <label>Select Dates</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <CustomDatePicker 
+                        value=""
+                        placeholder="ADD DATE"
+                        onChange={(d) => {
+                          if (d && !logFilter.dates.includes(d)) {
+                            setLogFilter(p => ({ ...p, dates: [...p.dates, d] }));
+                          }
+                        }}
+                      />
+                      <HorizontalScrollContainer 
+                        style={{ 
+                          display: "flex", 
+                          gap: 8, 
+                          overflowX: "auto", 
+                          width: "400px", 
+                          minHeight: "38px",
+                          alignItems: "center",
+                          whiteSpace: 'nowrap',
+                          scrollbarWidth: 'none',
+                          msOverflowStyle: 'none',
+                          cursor: 'ew-resize'
+                        }} className="no-scrollbar">
+                        {logFilter.dates.map(d => {
+                          const [y, m, day] = d.split("-");
+                          return (
+                            <span key={d} className="status-badge queued" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexShrink: 0, padding: '6px 12px' }}>
+                              {`${day}/${m}/${y}`} <XCircle size={14} style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => setLogFilter(p => ({ ...p, dates: p.dates.filter(x => x !== d) }))} />
+                            </span>
+                          );
+                        })}
+                      </HorizontalScrollContainer>
+                    </div>
                   </div>
-                ))}
-                {!logs.length && (
-                  <div className="empty-state"><Activity size={28} /><p>No activity logs</p></div>
+                )}
+
+                {logFilter.type === "RANGE" && (
+                  <>
+                    <div className="filter-group" style={{ marginBottom: 0 }}>
+                      <label>From</label>
+                      <CustomDatePicker value={logFilter.startDate} onChange={(d) => setLogFilter(p => ({ ...p, startDate: d }))} />
+                    </div>
+                    <div className="filter-group" style={{ marginBottom: 0 }}>
+                      <label>To</label>
+                      <CustomDatePicker value={logFilter.endDate} onChange={(d) => setLogFilter(p => ({ ...p, endDate: d }))} />
+                    </div>
+                  </>
+                )}
+
+                <div className="log-action-buttons" style={{ display: 'flex', gap: 10, alignSelf: 'flex-end' }}>
+                  <button className="btn-primary" onClick={loadLogs} disabled={loadingLogs} style={{ height: 38 }}>
+                    {loadingLogs ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} Submit
+                  </button>
+                  <button className="btn-secondary" onClick={() => {
+                    const reset = { type: "DEFAULT", dates: [], startDate: "", endDate: "" };
+                    setLogFilter(reset);
+                    api.get("/admin/activity-logs", { params: { filter_type: "DEFAULT" } })
+                       .then(res => setLogs(res.data));
+                  }} style={{ height: 38 }}>
+                    Logs Refresh
+                  </button>
+                </div>
+              </div>
+
+              {/* Full Log List with scrolling */}
+              <div className="log-list" style={{ 
+                maxHeight: '400px', 
+                overflowY: 'auto', 
+                paddingRight: '6px',
+                borderRadius: '8px'
+              }}>
+                {logs.length > 0 ? logs.map((l, i) => (
+                  <div key={i} className="log-item" style={{ padding: '12px 16px', marginBottom: 10, border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="log-action" style={{ 
+                      padding: '4px 8px', 
+                      borderRadius: 4, 
+                      fontSize: '.7rem',
+                      background: l.action?.includes('admin') ? 'var(--primary-bg)' : 'var(--success-bg)',
+                      color: l.action?.includes('admin') ? 'var(--primary)' : 'var(--success)',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {String(l.action || 'LOG').toUpperCase()}
+                    </div>
+                    <div className="log-details">
+                      <p style={{ fontWeight: 500, color: 'var(--text)', margin: 0 }}>{l.details}</p>
+                      <span className="muted" style={{ fontSize: '.75rem' }}>
+                        {new Date(l.created_at).toLocaleString('en-GB')}
+                      </span>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="empty-state">
+                    <Activity size={32} />
+                    <p>No activity recorded yet for the selected period</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -2316,7 +2227,7 @@ export default function AdminDashboardPage() {
                           <th style={{ width: 100 }}>Weight (ct)</th>
                           <th style={{ width: 100 }}>AVG RATE (₹/CT)</th>
                           <th style={{ width: 120, textAlign: "right" }}>Amount (₹)</th>
-                          <th style={{ width: 200, textAlign: "center" }}>Account</th>
+                          <th className="text-center" style={{ width: 200 }}>Account</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2328,7 +2239,7 @@ export default function AdminDashboardPage() {
                             <td style={{ width: 100 }}>{Number(b.total_weight).toFixed(2)}</td>
                             <td style={{ width: 100 }}>₹{Number(b.rate_per_carat).toFixed(2)}</td>
                             <td style={{ width: 120, textAlign: "right", fontWeight: 600, color: "var(--accent)" }}>₹{Number(b.total_amount).toFixed(2)}</td>
-                            <td style={{ width: 200, textAlign: "center" }}>
+                            <td className="text-center" style={{ width: 200 }}>
                               <div className="btn-group" style={{ justifyContent: "center" }}>
                                 <button className="btn-ghost btn-sm" onClick={() => loadUserAccount(b.user_id)}>
                                   <Eye size={13} /> Details
@@ -2387,7 +2298,7 @@ export default function AdminDashboardPage() {
                         <th style={{ width: "90px" }}>Rate</th>
                         <th style={{ width: "110px", textAlign: "right" }}>Amount</th>
                         <th style={{ width: "130px", textAlign: "center" }}>Generated</th>
-                        <th style={{ width: "180px", textAlign: "center" }}>Download File</th>
+                        <th className="text-center" style={{ width: "180px" }}>Download File</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2402,7 +2313,7 @@ export default function AdminDashboardPage() {
                           <td>₹{Number(inv.rate_per_carat).toFixed(2)}</td>
                           <td style={{ textAlign: "right", fontWeight: 600, color: "var(--accent)" }}>₹{Number(inv.total_amount).toFixed(2)}</td>
                           <td style={{ width: "130px", textAlign: "center", fontSize: ".82rem" }}>{inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-GB') : "-"}</td>
-                          <td style={{ width: "180px", textAlign: "center" }}>
+                          <td className="text-center" style={{ width: "180px" }}>
                             <div style={{ display: "flex", justifyContent: "center" }}>
                               <button className="btn-primary btn-sm" style={{ width: "140px", justifyContent: "center" }} onClick={() => openReportModal(inv.user_id, inv.company_name, inv.month)}>
                                 <Download size={13} /> Download File
@@ -2700,7 +2611,7 @@ export default function AdminDashboardPage() {
                             <th style={{ width: 100 }}>Stones</th>
                             <th style={{ width: 120 }}>Weight</th>
                             <th style={{ width: 150, textAlign: "right" }}>Amount</th>
-                            <th style={{ width: 180, textAlign: "center" }}>Download File</th>
+                            <th className="text-center" style={{ width: 180 }}>Download File</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2710,7 +2621,7 @@ export default function AdminDashboardPage() {
                               <td>{inv.total_stones}</td>
                               <td>{Number(inv.total_weight).toFixed(2)}</td>
                               <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(inv.total_amount).toFixed(2)}</td>
-                              <td style={{ width: "180px", textAlign: "center" }}>
+                              <td className="text-center" style={{ width: "180px" }}>
                                 <div style={{ display: "flex", justifyContent: "center" }}>
                                   <button className="btn-primary btn-sm" style={{ width: "140px", justifyContent: "center" }} onClick={() => openReportModal(userAccount.user_id, userAccount.company_name, inv.month)}>
                                     <Download size={13} /> Download File
@@ -2865,437 +2776,9 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* ── Tab: Accounts Profit ── */}
-        {activeTab === "accounts_profit" && (
-          <div className="accounts-profit-tab">
-            {/* Filter Bar */}
-            <div className="panel" style={{ marginBottom: "20px" }}>
-              <div className="accounts-profit-filter-row" style={{ display: "flex", gap: 15, alignItems: "center", flexWrap: "wrap" }}>
-                <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "520px" }}>
-                  <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
-                    <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                      <Calendar size={14} /> Month
-                    </label>
-                    <CustomSelect
-                      options={[
-                        { label: "All Months", value: "all" },
-                        ...MONTHS.slice(1).map((m, i) => ({ label: m, value: i + 1 }))
-                      ]}
-                      value={accProfitMonth}
-                      onChange={setAccProfitMonth}
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                  <div className="filter-group" style={{ marginBottom: 0, flex: 1 }}>
-                    <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                      <Calendar size={14} /> Year
-                    </label>
-                    <CustomSelect
-                      options={[
-                        { label: "All Years", value: "all" },
-                        ...yearOptions.map(y => ({ label: String(y), value: y }))
-                      ]}
-                      value={accProfitYear}
-                      onChange={setAccProfitYear}
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                  <div className="filter-group" style={{ marginBottom: 0, flex: 1.2 }}>
-                    <label style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                      <UserIcon size={14} /> Client
-                    </label>
-                    <CustomSelect
-                      options={[
-                        { label: "All Clients", value: "all" },
-                        ...nonAdminUsers.map(u => ({ label: u.company_name, value: String(u.id) }))
-                      ]}
-                      value={accProfitClient}
-                      onChange={setAccProfitClient}
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                </div>
-                <button 
-                  className={`btn profit-show-all-btn ${accProfitMonth === "all" && accProfitYear === "all" && accProfitClient === "all" ? "btn-primary" : "btn-outline"}`}
-                  style={{ alignSelf: "flex-end", height: 38 }}
-                  onClick={() => { setAccProfitMonth("all"); setAccProfitYear("all"); setAccProfitClient("all"); }}
-                >
-                  Show All (Lifetime)
-                </button>
-              </div>
-            </div>
 
-            {/* Global Summary Stats */}
-            <div className="stats-grid" style={{ marginBottom: "20px" }}>
-               <div className="panel" style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                 <span className="muted" style={{ fontSize: "0.85rem", fontWeight: 600 }}>REVENUE ({accProfitMonth === "all" ? "ALL" : MONTHS[accProfitMonth]})</span>
-                 <h2 style={{ color: "var(--primary)", margin: "8px 0 0 0" }}>
-                   ₹{accProfitTotals.revenue.toFixed(2)}
-                 </h2>
-               </div>
-               <div className="panel" style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                 <span className="muted" style={{ fontSize: "0.85rem", fontWeight: 600 }}>RECEIVED</span>
-                 <h2 style={{ color: "var(--success)", margin: "8px 0 0 0" }}>
-                   ₹{accProfitTotals.received.toFixed(2)}
-                 </h2>
-               </div>
-               <div className="panel" style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                 <span className="muted" style={{ fontSize: "0.85rem", fontWeight: 600 }}>PENDING</span>
-                 <h2 style={{ color: "var(--failed)", margin: "8px 0 0 0" }}>
-                   ₹{accProfitTotals.pending.toFixed(2)}
-                 </h2>
-               </div>
-            </div>
 
-            <div className="panel-grid">
-              {/* Revenue Chart */}
-              <div className="panel" style={{ marginBottom: 0 }}>
-                <div className="panel-header">
-                  <div className="panel-title">
-                    <div className="panel-icon green"><BarChart3 size={18} /></div>
-                    <h3>Revenue Distribution</h3>
-                  </div>
-                </div>
-                <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {filteredAccountData.some(d => d.revenue > 0) ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie 
-                          data={filteredAccountData.filter(d => d.revenue > 0)} 
-                          dataKey="revenue" 
-                          nameKey="company"
-                          outerRadius={100} 
-                          innerRadius={60} 
-                          paddingAngle={3}
-                        >
-                          {filteredAccountData.filter(d => d.revenue > 0).map((_, i) => (
-                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          formatter={(val) => [`₹${Number(val).toFixed(2)}`, "Revenue"]}
-                          contentStyle={{ 
-                            borderRadius: 12, 
-                            border: "none", 
-                            background: "var(--bg-card)",
-                            boxShadow: "var(--shadow-lg)",
-                            padding: "10px 14px"
-                          }}
-                          itemStyle={{ color: "var(--text)", fontWeight: 500 }}
-                          labelStyle={{ color: "var(--text)", fontWeight: 700, marginBottom: 4 }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="empty-state">
-                      <BarChart3 size={32} />
-                      <p>No revenue data for this period</p>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Add Profit Form */}
-              <div className="panel" style={{ marginBottom: 0 }}>
-                <div className="panel-header">
-                  <div className="panel-title">
-                    <div className="panel-icon blue"><Plus size={18} /></div>
-                    <h3>Record Entry</h3>
-                  </div>
-                </div>
-                <div style={{ padding: "10px 0" }}>
-                  <div className="form-group">
-                    <label>Select Client</label>
-                    <CustomSelect 
-                      options={[
-                        { label: "Choose Client...", value: "" },
-                        ...nonAdminUsers.map(u => ({ label: `${u.company_name} (${u.username})`, value: u.id }))
-                      ]}
-                      value={profitUserId}
-                      onChange={setProfitUserId}
-                    />
-                  </div>
-                  <div className="form-group" style={{ marginTop: "15px" }}>
-                    <label>Amount</label>
-                    <textarea 
-                      placeholder="Amount" 
-                      value={profitAmount}
-                      onChange={(e) => setProfitAmount(e.target.value)}
-                      style={{ 
-                        width: "100%", 
-                        minHeight: "60px", 
-                        padding: "12px", 
-                        borderRadius: "var(--radius-sm)",
-                        border: "1px solid var(--border)",
-                        background: "var(--bg-card)",
-                        color: "var(--text)",
-                        fontSize: "1rem"
-                      }}
-                    />
-                  </div>
-                  <div className="form-group" style={{ marginTop: "15px" }}>
-                    <label>Payment Mode</label>
-                    <CustomSelect 
-                      options={[
-                        { label: "Cash", value: "Cash" },
-                        { label: "UPI", value: "UPI" },
-                        { label: "Cheque", value: "Cheque" }
-                      ]}
-                      value={profitPaymentMode}
-                      onChange={setProfitPaymentMode}
-                    />
-                  </div>
-                  <button 
-                    className="btn-primary" 
-                    style={{ 
-                      width: "100%", 
-                      marginTop: "10px", 
-                      height: "45px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }}
-                    onClick={handleRecordProfit}
-                    disabled={submittingProfit}
-                  >
-                    {submittingProfit ? <Loader2 size={18} className="spin" /> : "Submit Profit"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* User-wise Revenue Table */}
-            <div className="panel" style={{ marginTop: "20px" }}>
-              <div className="panel-header">
-                <div className="panel-title">
-                  <div className="panel-icon purple"><BarChart3 size={18} /></div>
-                  <h3>User-wise Revenue Details</h3>
-                </div>
-              </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Company</th>
-                      <th style={{ textAlign: "right" }}>Total Revenue</th>
-                      <th style={{ textAlign: "right" }}>Received</th>
-                      <th style={{ textAlign: "right" }}>Pending</th>
-                      <th style={{ textAlign: "center", width: "80px" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAccountData.map((item, idx) => {
-                      const received = filteredReceivedTotals[item.user_id] || 0;
-                      const pending = item.revenue - received;
-                      return (
-                        <tr key={idx}>
-                          <td><strong>{item.company}</strong></td>
-                          <td style={{ textAlign: "right" }}>₹{Number(item.revenue).toFixed(2)}</td>
-                          <td style={{ textAlign: "right", color: "var(--success)" }}>₹{Number(received).toFixed(2)}</td>
-                          <td style={{ textAlign: "right", color: pending > 0 ? "var(--failed)" : "var(--success)", fontWeight: 700 }}>
-                            ₹{Number(pending).toFixed(2)}
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            <button 
-                              className="btn-icon blue" 
-                              title="Download Statement"
-                              onClick={() => handleDownloadAccountStatement(item.user_id, item.company)}
-                            >
-                              <Download size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {!filteredAccountData.length && (
-                      <tr><td colSpan={5}><div className="empty-state"><Package size={28} /><p>No data available</p></div></td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-             {/* Recent Recorded Profits */}
-            <div className="panel" style={{ marginTop: "20px" }}>
-              <div className="panel-header">
-                <div className="panel-title">
-                  <div className="panel-icon orange"><Clock size={18} /></div>
-                  <h3>Recent Recorded Entries</h3>
-                </div>
-                <span className="panel-badge orange">{filteredRecordedProfits.length}</span>
-              </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Client</th>
-                      <th>Amount</th>
-                      <th>Mode</th>
-                      <th>Date</th>
-                      <th>Remarks</th>
-                      <th style={{ textAlign: "center", width: "80px" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecordedProfits.map((p) => (
-                      <tr key={p.id}>
-                        <td><strong>{p.company}</strong></td>
-                        <td style={{ fontWeight: 600, color: "var(--success)" }}>₹{p.amount.toFixed(2)}</td>
-                        <td>
-                          <span className={`status-badge ${p.payment_mode === 'Cash' ? 'completed' : p.payment_mode === 'UPI' ? 'processing' : 'queued'}`} style={{ fontSize: '0.75rem' }}>
-                            {p.payment_mode}
-                          </span>
-                        </td>
-                        <td>{new Date(p.created_at).toLocaleString()}</td>
-                        <td>{p.remarks}</td>
-                        <td style={{ textAlign: "center" }}>
-                          <button 
-                            className="btn-icon blue" 
-                            title="Edit Entry"
-                            onClick={() => handleOpenEditProfitModal(p)}
-                          >
-                            <Edit size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {!filteredRecordedProfits.length && (
-                      <tr><td colSpan={6}><div className="empty-state"><Clock size={28} /><p>No entries recorded yet</p></div></td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Tab: Logs ── */}
-        {activeTab === "logs" && (
-          <div className="panel">
-            <div className="panel-header">
-              <div className="panel-title">
-                <div className="panel-icon purple"><Activity size={18} /></div>
-                <h3>System Activity Logs</h3>
-              </div>
-              <div className="refresh-dot"></div>
-            </div>
-
-            <div className="filter-row" style={{ marginBottom: 20, flexWrap: 'wrap', gap: 15, alignItems: 'flex-end' }}>
-              <div className="filter-group">
-                <label>Filter Type</label>
-                <CustomSelect 
-                  options={[
-                    { label: "Today & Yesterday", value: "DEFAULT" },
-                    { label: "Multiple Dates", value: "DAYS" },
-                    { label: "Date Range", value: "RANGE" }
-                  ]}
-                  value={logFilter.type}
-                  onChange={(val) => setLogFilter(p => ({ ...p, type: val }))}
-                  style={{ width: 220 }}
-                />
-              </div>
-
-              {logFilter.type === "DAYS" && (
-                <div className="filter-group">
-                  <label>Select Dates</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <CustomDatePicker 
-                      value=""
-                      placeholder="ADD DATE"
-                      onChange={(d) => {
-                        if (d && !logFilter.dates.includes(d)) {
-                          setLogFilter(p => ({ ...p, dates: [...p.dates, d] }));
-                        }
-                      }}
-                    />
-                    <HorizontalScrollContainer 
-                      style={{ 
-                        display: "flex", 
-                        gap: 8, 
-                        overflowX: "auto", 
-                        width: "400px", 
-                        minHeight: "38px",
-                        alignItems: "center",
-                        whiteSpace: 'nowrap',
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        cursor: 'ew-resize'
-                      }} className="no-scrollbar">
-                      {logFilter.dates.map(d => {
-                        const [y, m, day] = d.split("-");
-                        return (
-                          <span key={d} className="status-badge queued" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexShrink: 0, padding: '6px 12px' }}>
-                            {`${day}/${m}/${y}`} <XCircle size={14} style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => setLogFilter(p => ({ ...p, dates: p.dates.filter(x => x !== d) }))} />
-                          </span>
-                        );
-                      })}
-                    </HorizontalScrollContainer>
-                  </div>
-                </div>
-              )}
-
-              {logFilter.type === "RANGE" && (
-                <>
-                  <div className="filter-group">
-                    <label>From</label>
-                    <CustomDatePicker value={logFilter.startDate} onChange={(d) => setLogFilter(p => ({ ...p, startDate: d }))} />
-                  </div>
-                  <div className="filter-group">
-                    <label>To</label>
-                    <CustomDatePicker value={logFilter.endDate} onChange={(d) => setLogFilter(p => ({ ...p, endDate: d }))} />
-                  </div>
-                </>
-              )}
-
-              <div className="log-action-buttons" style={{ display: 'flex', gap: 10, alignSelf: 'flex-end' }}>
-                <button className="btn-primary" onClick={loadLogs} disabled={loadingLogs} style={{ height: 38 }}>
-                  {loadingLogs ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} Submit
-                </button>
-                <button className="btn-secondary" onClick={() => {
-                  const reset = { type: "DEFAULT", dates: [], startDate: "", endDate: "" };
-                  setLogFilter(reset);
-                  // We need to call loadLogs with the reset state immediately
-                  api.get("/admin/activity-logs", { params: { filter_type: "DEFAULT" } })
-                     .then(res => setLogs(res.data));
-                }} style={{ height: 38 }}>
-                  Logs Refresh
-                </button>
-              </div>
-            </div>
-
-            <div className="log-list" style={{ 
-              maxHeight: '580px', 
-              overflowY: 'auto', 
-              paddingRight: '6px',
-              borderRadius: '8px'
-            }}>
-              {logs.length > 0 ? logs.map((l, i) => (
-                <div key={i} className="log-item" style={{ padding: '12px 16px', marginBottom: 10, border: '1px solid var(--border-light)' }}>
-                  <div className="log-action" style={{ 
-                    padding: '4px 8px', 
-                    borderRadius: 4, 
-                    fontSize: '.7rem',
-                    background: l.action?.includes('admin') ? 'var(--primary-bg)' : 'var(--success-bg)',
-                    color: l.action?.includes('admin') ? 'var(--primary)' : 'var(--success)'
-                  }}>
-                    {String(l.action || 'LOG').toUpperCase()}
-                  </div>
-                  <div className="log-details">
-                    <p style={{ fontWeight: 500, color: 'var(--text)' }}>{l.details}</p>
-                    <span className="muted" style={{ fontSize: '.75rem' }}>
-                      {new Date(l.created_at).toLocaleString('en-GB')}
-                    </span>
-                  </div>
-                </div>
-              )) : (
-                <div className="empty-state">
-                  <Activity size={32} />
-                  <p>No activity recorded yet for the selected period</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* ── Tab: Backup & Restore ── */}
         {activeTab === "backup_restore" && (
@@ -3494,6 +2977,96 @@ export default function AdminDashboardPage() {
                 onChange={setCompletedUserFilter}
                 style={{ flex: "0 0 150px" }}
               />
+            </div>
+
+            {/* Date Filters */}
+            <div className="filter-row" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 15, alignItems: 'flex-end', background: 'var(--bg-card)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'flex' }}>
+              <div className="filter-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.85rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Filter Completed Date</label>
+                <CustomSelect 
+                  options={[
+                    { label: "All Dates", value: "ALL" },
+                    { label: "Single Date", value: "SINGLE" },
+                    { label: "Multiple Dates", value: "DAYS" },
+                    { label: "Date Range", value: "RANGE" }
+                  ]}
+                  value={completedDateFilter.type}
+                  onChange={(val) => setCompletedDateFilter(p => ({ ...p, type: val }))}
+                  style={{ width: 180 }}
+                />
+              </div>
+
+              {completedDateFilter.type === "SINGLE" && (
+                <div className="filter-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.85rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Select Date</label>
+                  <CustomDatePicker 
+                    value={completedDateFilter.singleDate}
+                    onChange={(d) => setCompletedDateFilter(p => ({ ...p, singleDate: d }))}
+                  />
+                </div>
+              )}
+
+              {completedDateFilter.type === "DAYS" && (
+                <div className="filter-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.85rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Select Dates</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <CustomDatePicker 
+                      value=""
+                      placeholder="ADD DATE"
+                      onChange={(d) => {
+                        if (d && !completedDateFilter.dates.includes(d)) {
+                          setCompletedDateFilter(p => ({ ...p, dates: [...p.dates, d] }));
+                        }
+                      }}
+                    />
+                    <HorizontalScrollContainer 
+                      style={{ 
+                        display: "flex", 
+                        gap: 8, 
+                        overflowX: "auto", 
+                        width: "300px", 
+                        minHeight: "38px",
+                        alignItems: "center",
+                        whiteSpace: 'nowrap',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        cursor: 'ew-resize'
+                      }} className="no-scrollbar">
+                      {completedDateFilter.dates.map(d => {
+                        const [y, m, day] = d.split("-");
+                        return (
+                          <span key={d} className="status-badge queued" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexShrink: 0, padding: '6px 12px' }}>
+                            {`${day}/${m}/${y}`} <XCircle size={14} style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => setCompletedDateFilter(p => ({ ...p, dates: p.dates.filter(x => x !== d) }))} />
+                          </span>
+                        );
+                      })}
+                    </HorizontalScrollContainer>
+                  </div>
+                </div>
+              )}
+
+              {completedDateFilter.type === "RANGE" && (
+                <>
+                  <div className="filter-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.85rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>From</label>
+                    <CustomDatePicker value={completedDateFilter.startDate} onChange={(d) => setCompletedDateFilter(p => ({ ...p, startDate: d }))} />
+                  </div>
+                  <div className="filter-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.85rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>To</label>
+                    <CustomDatePicker value={completedDateFilter.endDate} onChange={(d) => setCompletedDateFilter(p => ({ ...p, endDate: d }))} />
+                  </div>
+                </>
+              )}
+
+              {completedDateFilter.type !== "ALL" && (
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setCompletedDateFilter({ type: "ALL", singleDate: "", dates: [], startDate: "", endDate: "" })}
+                  style={{ height: 38 }}
+                >
+                  Reset Date
+                </button>
+              )}
             </div>
 
             <div className="table-container">
@@ -4068,83 +3641,7 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* ── Edit Profit Entry Modal ── */}
-      {showEditProfitModal && (
-        <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: 460 }}>
-            <div className="modal-header">
-              <div className="panel-title">
-                <Edit size={20} className="text-primary" />
-                <h3>Edit Recorded Entry</h3>
-              </div>
-              <button onClick={() => setShowEditProfitModal(false)} className="btn-icon">
-                <XCircle size={24} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSaveEditProfit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Client</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={editProfitForm.company}
-                    style={{ opacity: 0.7, cursor: "not-allowed" }}
-                  />
-                </div>
 
-                <div className="form-group">
-                  <label>Amount (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="Enter amount"
-                    value={editProfitForm.amount}
-                    onChange={(e) => setEditProfitForm({ ...editProfitForm, amount: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Payment Mode</label>
-                  <CustomSelect
-                    options={[
-                      { label: "Cash", value: "Cash" },
-                      { label: "UPI", value: "UPI" },
-                      { label: "Cheque", value: "Cheque" },
-                    ]}
-                    value={editProfitForm.payment_mode}
-                    onChange={(val) => setEditProfitForm({ ...editProfitForm, payment_mode: val })}
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Remarks</label>
-                  <input
-                    type="text"
-                    placeholder="Enter remarks"
-                    value={editProfitForm.remarks}
-                    onChange={(e) => setEditProfitForm({ ...editProfitForm, remarks: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" onClick={() => setShowEditProfitModal(false)} className="btn-outline">Cancel</button>
-                <button 
-                  type="submit" 
-                  className="btn-primary" 
-                  disabled={editingProfitLoading}
-                >
-                  {editingProfitLoading ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
-                  {editingProfitLoading ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       {/* ── Edit Completed Job Modal ── */}
       {showEditCompletedModal && editingCompletedJob && (
         <div className="modal-overlay">

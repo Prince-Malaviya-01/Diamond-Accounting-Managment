@@ -306,6 +306,9 @@ def update_weight(payload: UpdateWeightRequest, admin: User = Depends(get_curren
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
     
+    if job.status != JobStatus.completed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only completed jobs can have their weight updated")
+
     # Update weight
     job.weight = payload.weight
     
@@ -397,12 +400,19 @@ def bulk_update_weights(
         
         try:
             w = float(row["Weight"])
+            import math
+            if math.isnan(w) or w < 0:
+                skipped += 1
+                continue
         except:
             skipped += 1
             continue
 
         if s_id_stem in job_map:
             job = job_map[s_id_stem]
+            if job.status != JobStatus.completed:
+                skipped += 1
+                continue
             job.weight = w
             # Recalculate rate based on new weight
             owner = db.query(User).filter(User.id == user_id).first()

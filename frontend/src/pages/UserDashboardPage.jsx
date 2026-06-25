@@ -138,6 +138,15 @@ export default function UserDashboardPage() {
   const [accProfitMonth, setAccProfitMonth] = useState("all");
   const [accProfitYear, setAccProfitYear] = useState("all");
 
+  // Completed files date filter state
+  const [completedDateFilter, setCompletedDateFilter] = useState({
+    type: "ALL",
+    singleDate: "",
+    dates: [],
+    startDate: "",
+    endDate: ""
+  });
+
   // Custom Confirm Modal state for premium UI confirmations
   const [confirmModal, setConfirmModal] = useState({
     show: false,
@@ -281,8 +290,41 @@ export default function UserDashboardPage() {
     return { stones: totalStones, weight: totalWt, amount: totalAmt };
   }, [billing]);
 
+  const filterByDate = useCallback((list) => {
+    if (completedDateFilter.type === "ALL") return list;
+    return list.filter(j => {
+      if (!j.completed_at) return false;
+      const jobDate = new Date(j.completed_at);
+      const y = jobDate.getFullYear();
+      const m = jobDate.getMonth() + 1;
+      const d = jobDate.getDate();
+      const jobDateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+      if (completedDateFilter.type === "SINGLE") {
+        return jobDateStr === completedDateFilter.singleDate;
+      } else if (completedDateFilter.type === "DAYS") {
+        return completedDateFilter.dates.includes(jobDateStr);
+      } else if (completedDateFilter.type === "RANGE") {
+        const start = completedDateFilter.startDate;
+        const end = completedDateFilter.endDate;
+        if (start && end) {
+          return jobDateStr >= start && jobDateStr <= end;
+        } else if (start) {
+          return jobDateStr >= start;
+        } else if (end) {
+          return jobDateStr <= end;
+        }
+      }
+      return true;
+    });
+  }, [completedDateFilter]);
+
   const filteredCompleted = useMemo(() => {
     let list = [...completed].sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
+    
+    // Apply Date Filter
+    list = filterByDate(list);
+
     if (!searchTerm) return list;
     
     const term = searchTerm.toLowerCase();
@@ -303,10 +345,14 @@ export default function UserDashboardPage() {
     }
 
     return list.filter(j => j.stone_id?.toLowerCase().includes(term) || j.completed_filename?.toLowerCase().includes(term));
-  }, [completed, searchTerm]);
+  }, [completed, searchTerm, filterByDate]);
 
   const filteredDownloaded = useMemo(() => {
     let list = [...downloadedJobs].sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
+    
+    // Apply Date Filter
+    list = filterByDate(list);
+
     if (!downloadedSearchTerm) return list;
     
     const term = downloadedSearchTerm.toLowerCase();
@@ -327,7 +373,7 @@ export default function UserDashboardPage() {
     }
 
     return list.filter(j => j.stone_id?.toLowerCase().includes(term) || j.completed_filename?.toLowerCase().includes(term));
-  }, [downloadedJobs, downloadedSearchTerm]);
+  }, [downloadedJobs, downloadedSearchTerm, filterByDate]);
 
   const revenueTrendData = useMemo(() => {
     return [...billing].reverse().map(b => ({
@@ -503,7 +549,7 @@ export default function UserDashboardPage() {
   const toggleSelect = (id) =>
     setSelectedIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
-  const selectAll = () => setSelectedIds(completed.map((j) => j.id));
+  const selectAll = () => setSelectedIds(filteredCompleted.map((j) => j.id));
   const clearSelection = () => setSelectedIds([]);
 
   const downloadSelected = async () => {
@@ -544,7 +590,7 @@ export default function UserDashboardPage() {
   const toggleSelectDownloaded = (id) =>
     setSelectedDownloadedIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
-  const selectAllDownloaded = () => setSelectedDownloadedIds(downloadedJobs.map((j) => j.id));
+  const selectAllDownloaded = () => setSelectedDownloadedIds(filteredDownloaded.map((j) => j.id));
   const clearSelectionDownloaded = () => setSelectedDownloadedIds([]);
 
   const downloadSelectedDownloaded = async () => {
@@ -825,7 +871,97 @@ export default function UserDashboardPage() {
                 <div className="panel-icon green"><CheckCircle2 size={18} /></div>
                 <h3>Completed Stones</h3>
               </div>
-              <span className="panel-badge green">{completed.length}</span>
+              <span className="panel-badge green">{filteredCompleted.length}</span>
+            </div>
+
+            {/* Date Filters */}
+            <div className="filter-row" style={{ display: 'flex', marginBottom: 12, flexWrap: 'wrap', gap: 12, alignItems: 'flex-end', background: 'var(--bg-card)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <div className="filter-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Filter Date</label>
+                <CustomSelect 
+                  options={[
+                    { label: "All Dates", value: "ALL" },
+                    { label: "Single Date", value: "SINGLE" },
+                    { label: "Multiple Dates", value: "DAYS" },
+                    { label: "Date Range", value: "RANGE" }
+                  ]}
+                  value={completedDateFilter.type}
+                  onChange={(val) => setCompletedDateFilter(p => ({ ...p, type: val }))}
+                  style={{ width: 160 }}
+                />
+              </div>
+
+              {completedDateFilter.type === "SINGLE" && (
+                <div className="filter-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Select Date</label>
+                  <CustomDatePicker 
+                    value={completedDateFilter.singleDate}
+                    onChange={(d) => setCompletedDateFilter(p => ({ ...p, singleDate: d }))}
+                  />
+                </div>
+              )}
+
+              {completedDateFilter.type === "DAYS" && (
+                <div className="filter-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Select Dates</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <CustomDatePicker 
+                      value=""
+                      placeholder="ADD DATE"
+                      onChange={(d) => {
+                        if (d && !completedDateFilter.dates.includes(d)) {
+                          setCompletedDateFilter(p => ({ ...p, dates: [...p.dates, d] }));
+                        }
+                      }}
+                    />
+                    <HorizontalScrollContainer 
+                      style={{ 
+                        display: "flex", 
+                        gap: 8, 
+                        overflowX: "auto", 
+                        width: "250px", 
+                        minHeight: "38px",
+                        alignItems: "center",
+                        whiteSpace: 'nowrap',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        cursor: 'ew-resize'
+                      }} className="no-scrollbar">
+                      {completedDateFilter.dates.map(d => {
+                        const [y, m, day] = d.split("-");
+                        return (
+                          <span key={d} className="status-badge queued" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexShrink: 0, padding: '4px 8px', fontSize: '0.75rem' }}>
+                            {`${day}/${m}/${y}`} <XCircle size={12} style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => setCompletedDateFilter(p => ({ ...p, dates: p.dates.filter(x => x !== d) }))} />
+                          </span>
+                        );
+                      })}
+                    </HorizontalScrollContainer>
+                  </div>
+                </div>
+              )}
+
+              {completedDateFilter.type === "RANGE" && (
+                <>
+                  <div className="filter-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>From</label>
+                    <CustomDatePicker value={completedDateFilter.startDate} onChange={(d) => setCompletedDateFilter(p => ({ ...p, startDate: d }))} />
+                  </div>
+                  <div className="filter-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>To</label>
+                    <CustomDatePicker value={completedDateFilter.endDate} onChange={(d) => setCompletedDateFilter(p => ({ ...p, endDate: d }))} />
+                  </div>
+                </>
+              )}
+
+              {completedDateFilter.type !== "ALL" && (
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => setCompletedDateFilter({ type: "ALL", singleDate: "", dates: [], startDate: "", endDate: "" })}
+                  style={{ height: 38 }}
+                >
+                  Reset
+                </button>
+              )}
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
@@ -859,8 +995,8 @@ export default function UserDashboardPage() {
                   <tr>
                     <th style={{ width: 40 }}>
                       <SelectionBox 
-                        checked={selectedIds.length === completed.length && completed.length > 0}
-                        onChange={() => selectedIds.length === completed.length ? clearSelection() : selectAll()} 
+                        checked={selectedIds.length === filteredCompleted.length && filteredCompleted.length > 0}
+                        onChange={() => selectedIds.length === filteredCompleted.length ? clearSelection() : selectAll()} 
                       />
                     </th>
                     <th>Stone ID</th>
@@ -1129,7 +1265,97 @@ export default function UserDashboardPage() {
                 <div className="panel-icon blue"><Download size={18} /></div>
                 <h3>Downloaded Files</h3>
               </div>
-              <span className="panel-badge blue">{downloadedJobs.length}</span>
+              <span className="panel-badge blue">{filteredDownloaded.length}</span>
+            </div>
+
+            {/* Date Filters */}
+            <div className="filter-row" style={{ display: 'flex', marginBottom: 12, flexWrap: 'wrap', gap: 12, alignItems: 'flex-end', background: 'var(--bg-card)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <div className="filter-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Filter Date</label>
+                <CustomSelect 
+                  options={[
+                    { label: "All Dates", value: "ALL" },
+                    { label: "Single Date", value: "SINGLE" },
+                    { label: "Multiple Dates", value: "DAYS" },
+                    { label: "Date Range", value: "RANGE" }
+                  ]}
+                  value={completedDateFilter.type}
+                  onChange={(val) => setCompletedDateFilter(p => ({ ...p, type: val }))}
+                  style={{ width: 160 }}
+                />
+              </div>
+
+              {completedDateFilter.type === "SINGLE" && (
+                <div className="filter-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Select Date</label>
+                  <CustomDatePicker 
+                    value={completedDateFilter.singleDate}
+                    onChange={(d) => setCompletedDateFilter(p => ({ ...p, singleDate: d }))}
+                  />
+                </div>
+              )}
+
+              {completedDateFilter.type === "DAYS" && (
+                <div className="filter-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>Select Dates</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <CustomDatePicker 
+                      value=""
+                      placeholder="ADD DATE"
+                      onChange={(d) => {
+                        if (d && !completedDateFilter.dates.includes(d)) {
+                          setCompletedDateFilter(p => ({ ...p, dates: [...p.dates, d] }));
+                        }
+                      }}
+                    />
+                    <HorizontalScrollContainer 
+                      style={{ 
+                        display: "flex", 
+                        gap: 8, 
+                        overflowX: "auto", 
+                        width: "250px", 
+                        minHeight: "38px",
+                        alignItems: "center",
+                        whiteSpace: 'nowrap',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        cursor: 'ew-resize'
+                      }} className="no-scrollbar">
+                      {completedDateFilter.dates.map(d => {
+                        const [y, m, day] = d.split("-");
+                        return (
+                          <span key={d} className="status-badge queued" style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexShrink: 0, padding: '4px 8px', fontSize: '0.75rem' }}>
+                            {`${day}/${m}/${y}`} <XCircle size={12} style={{ cursor: 'pointer', opacity: 0.7 }} onClick={() => setCompletedDateFilter(p => ({ ...p, dates: p.dates.filter(x => x !== d) }))} />
+                          </span>
+                        );
+                      })}
+                    </HorizontalScrollContainer>
+                  </div>
+                </div>
+              )}
+
+              {completedDateFilter.type === "RANGE" && (
+                <>
+                  <div className="filter-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>From</label>
+                    <CustomDatePicker value={completedDateFilter.startDate} onChange={(d) => setCompletedDateFilter(p => ({ ...p, startDate: d }))} />
+                  </div>
+                  <div className="filter-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', marginBottom: 4, display: 'block', fontWeight: 600 }}>To</label>
+                    <CustomDatePicker value={completedDateFilter.endDate} onChange={(d) => setCompletedDateFilter(p => ({ ...p, endDate: d }))} />
+                  </div>
+                </>
+              )}
+
+              {completedDateFilter.type !== "ALL" && (
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => setCompletedDateFilter({ type: "ALL", singleDate: "", dates: [], startDate: "", endDate: "" })}
+                  style={{ height: 38 }}
+                >
+                  Reset
+                </button>
+              )}
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
@@ -1163,8 +1389,8 @@ export default function UserDashboardPage() {
                   <tr>
                     <th style={{ width: 40 }}>
                       <SelectionBox 
-                        checked={selectedDownloadedIds.length === downloadedJobs.length && downloadedJobs.length > 0}
-                        onChange={() => selectedDownloadedIds.length === downloadedJobs.length ? clearSelectionDownloaded() : selectAllDownloaded()} 
+                        checked={selectedDownloadedIds.length === filteredDownloaded.length && filteredDownloaded.length > 0}
+                        onChange={() => selectedDownloadedIds.length === filteredDownloaded.length ? clearSelectionDownloaded() : selectAllDownloaded()} 
                       />
                     </th>
                     <th>Stone ID</th>
@@ -1194,6 +1420,48 @@ export default function UserDashboardPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoices list */}
+      {activeTab === "report" && billing?.length > 0 && (
+        <div className="panel" style={{ marginTop: 24 }}>
+          <div className="panel-header">
+            <div className="panel-title">
+              <div className="panel-icon green"><FileText size={18} /></div>
+              <h3>Invoices</h3>
+            </div>
+          </div>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 150 }}>Month</th>
+                  <th style={{ width: 100 }}>Stones</th>
+                  <th style={{ width: 120 }}>Weight</th>
+                  <th style={{ width: 150, textAlign: "right" }}>Amount</th>
+                  <th className="text-center" style={{ width: 180 }}>Download File</th>
+                </tr>
+              </thead>
+              <tbody>
+                {billing.map((inv) => (
+                  <tr key={inv.id}>
+                    <td><strong>{inv.month}</strong></td>
+                    <td>{inv.total_stones}</td>
+                    <td>{Number(inv.total_weight).toFixed(2)}</td>
+                    <td style={{ textAlign: "right", fontWeight: 600 }}>₹{Number(inv.total_amount).toFixed(2)}</td>
+                    <td className="text-center" style={{ width: "180px" }}>
+                      <div style={{ display: "flex", justifyContent: "center" }}>
+                        <button className="btn-primary btn-sm" style={{ width: "140px", justifyContent: "center" }} onClick={() => openReportModal(inv.month)}>
+                          <Download size={13} /> Download File
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

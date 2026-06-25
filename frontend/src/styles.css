@@ -1070,6 +1070,14 @@ td:last-child {
   text-align: right !important;
 }
 
+table th.text-center,
+table td.text-center {
+  text-align: center !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+
 tbody tr:hover {
   background: rgba(255, 255, 255, 0.95);
   transform: translateY(-3px) scale(1.004);
@@ -3868,5 +3876,20 @@ html.theme-transition * {
 [data-theme='dark'] .revenue-eye-toggle-btn:hover {
   background-color: rgba(6, 182, 212, 0.15);
   color: var(--info);
+}
+
+/* Helper class for clickable rows and text hover */
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover strong.text-primary-hover,
+.clickable-row:hover span.text-primary-hover {
+  color: var(--primary) !important;
+  text-decoration: underline;
+}
+[data-theme='dark'] .clickable-row:hover strong.text-primary-hover,
+[data-theme='dark'] .clickable-row:hover span.text-primary-hover {
+  color: var(--info) !important;
+  text-decoration: underline;
 }
 

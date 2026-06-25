@@ -61,6 +61,9 @@ def _validate_weight(weight: float) -> float:
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Weight must be a valid number") from exc
 
+    import math
+    if math.isnan(parsed):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Weight cannot be NaN (Not a Number)")
     if parsed < 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Weight cannot be negative")
     return parsed
