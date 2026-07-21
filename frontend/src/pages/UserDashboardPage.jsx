@@ -99,6 +99,7 @@ export default function UserDashboardPage() {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [downloadingBulk, setDownloadingBulk] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(null);
+  const [movingToDownloaded, setMovingToDownloaded] = useState(false);
   const [downloadedSearchTerm, setDownloadedSearchTerm] = useState("");
   const [selectedDownloadedIds, setSelectedDownloadedIds] = useState([]);
   const [downloadingDownloadedBulk, setDownloadingDownloadedBulk] = useState(false);
@@ -587,6 +588,23 @@ export default function UserDashboardPage() {
     }
   };
 
+  const moveSelectedToDownloaded = async () => {
+    if (!selectedIds.length) { showMsg("Select stones first"); return; }
+    setMovingToDownloaded(true);
+    try {
+      showMsg("Moving stones to downloaded files...");
+      await api.post("/jobs/mark-downloaded", { job_ids: selectedIds });
+      showMsg("✓ Selected stones moved to downloaded files");
+      setSelectedIds([]);
+      loadData();
+    } catch (err) {
+      console.error(err);
+      showMsg(err.response?.data?.detail || "Failed to move stones");
+    } finally {
+      setMovingToDownloaded(false);
+    }
+  };
+
   const toggleSelectDownloaded = (id) =>
     setSelectedDownloadedIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
@@ -966,13 +984,17 @@ export default function UserDashboardPage() {
 
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
               <div className="bulk-action-grid" style={{ marginBottom: 0, display: "flex", gap: 8 }}>
-                <button className="btn-ghost btn-sm" onClick={selectAll} disabled={downloadingBulk}>Select All</button>
-                <button className="btn-ghost btn-sm" onClick={clearSelection} disabled={downloadingBulk}>Clear</button>
-                <button className="btn-primary btn-sm" onClick={downloadSelected} disabled={!selectedIds.length || downloadingBulk}>
+                <button className="btn-ghost btn-sm" onClick={selectAll} disabled={downloadingBulk || movingToDownloaded}>Select All</button>
+                <button className="btn-ghost btn-sm" onClick={clearSelection} disabled={downloadingBulk || movingToDownloaded}>Clear</button>
+                <button className="btn-primary btn-sm" onClick={downloadSelected} disabled={!selectedIds.length || downloadingBulk || movingToDownloaded}>
                   {downloadingBulk ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
                   {downloadingBulk
                     ? (downloadProgress !== null ? `Downloading ${downloadProgress}%` : "Downloading...")
                     : `Download (${selectedIds.length})`}
+                </button>
+                <button className="btn-secondary btn-sm" onClick={moveSelectedToDownloaded} disabled={!selectedIds.length || downloadingBulk || movingToDownloaded}>
+                  {movingToDownloaded ? <Loader2 size={14} className="spin" /> : <CheckCircle2 size={14} />}
+                  Move to Downloaded
                 </button>
               </div>
               

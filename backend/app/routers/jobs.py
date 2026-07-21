@@ -284,3 +284,26 @@ def download_file(token: str, user: User = Depends(get_current_user), db: Sessio
 
     log_activity(db, "file_download", f"Downloaded result for job {job.id}", user.id)
     return FileResponse(path=path, filename=path.name)
+
+
+@router.post("/mark-downloaded")
+def mark_completed_bulk_downloaded(
+    payload: BulkDownloadRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    jobs = (
+        db.query(Job)
+        .filter(Job.user_id == user.id, Job.id.in_(payload.job_ids), Job.status == JobStatus.completed)
+        .all()
+    )
+    if not jobs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No completed files found for selected jobs")
+
+    for job in jobs:
+        job.downloaded = True
+
+    db.commit()
+    log_activity(db, "mark_downloaded", f"Marked {len(jobs)} completed files as downloaded", user.id)
+    return {"message": "Moved to downloaded files", "count": len(jobs)}
+
