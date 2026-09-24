@@ -6,10 +6,12 @@ __pycache__/
 .venv/
 venv/
 backend/.env
+backend/firebase-service-account.json
+
 
 # Node
 node_modules/
-frontend/dist/
+
 
 # Storage runtime artifacts
 backend/storage/uploads/**
@@ -17,6 +19,8 @@ backend/storage/processing/**
 backend/storage/completed/**
 backend/storage/invoices/**
 backend/storage/logs/**
+backend/storage/temp/**
+
 
 # IDE
 .vscode/

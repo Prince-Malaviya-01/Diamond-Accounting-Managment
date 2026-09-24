@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Check, Loader2 } from "lucide-react";
+import { Bell, Check, Loader2, Smartphone, Send } from "lucide-react";
 import api from "../api";
+import { requestNotificationPermissionAndRegister, onForegroundMessage } from "../firebase";
 
 export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState(
+    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "default"
+  );
   const [toasts, setToasts] = useState([]);
   const dropdownRef = useRef(null);
   const isFirstFetchRef = useRef(true);
@@ -69,6 +74,18 @@ export default function NotificationBell() {
     }
   };
 
+  const handleEnablePush = async () => {
+    const token = await requestNotificationPermissionAndRegister();
+    if (token) {
+      setPermissionStatus("granted");
+      showToast("Push Enabled", "This device will now receive instant push alerts!");
+    } else {
+      if ("Notification" in window) {
+        setPermissionStatus(Notification.permission);
+      }
+    }
+  };
+
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -80,13 +97,40 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Poll for notifications
+  // Poll for notifications + Foreground FCM push listener
   useEffect(() => {
     fetchData(true); // Initial silent fetch
+
+    // Listen to foreground push messages from Firebase
+    const unsubscribeFCM = onForegroundMessage((payload) => {
+      const title = payload.notification?.title || payload.data?.title || "New Notification";
+      const body = payload.notification?.body || payload.data?.body || "";
+      showToast(title, body);
+
+      // Trigger OS-level notification on Windows / Phone
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        try {
+          new Notification(title, {
+            body: body,
+            icon: "/favicon.png",
+            requireInteraction: true
+          });
+        } catch (e) {
+          console.warn("OS Notification popup error:", e);
+        }
+      }
+
+      fetchData(true);
+    });
+
     const interval = setInterval(() => {
       fetchData(true);
-    }, 20000); // every 20 seconds
-    return () => clearInterval(interval);
+    }, 20000); // every 20 seconds fallback
+
+    return () => {
+      clearInterval(interval);
+      if (typeof unsubscribeFCM === "function") unsubscribeFCM();
+    };
   }, []);
 
   // Format timestamp relative
@@ -158,10 +202,25 @@ export default function NotificationBell() {
               ))
             )}
           </div>
+
+          {/* FCM Push Status (If not granted, show button to enable) */}
+          {permissionStatus !== "granted" && (
+            <div style={{ padding: "8px 12px", borderTop: "1px solid var(--border-color, rgba(255,255,255,0.08))", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", background: "rgba(0,0,0,0.15)" }}>
+              <button 
+                onClick={handleEnablePush}
+                style={{ fontSize: "11px", padding: "5px 10px", background: "var(--accent-primary, #3b82f6)", color: "#fff", border: "none", borderRadius: "4px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}
+              >
+                <Smartphone size={12} /> Enable Push Alerts
+              </button>
+              <span style={{ fontSize: "10px", color: "#f59e0b" }}>○ Alerts Off</span>
+            </div>
+          )}
         </div>
       )}
 
+
       {/* Float Toasts */}
+
       {createPortal(
         <div className="toast-notifications-container">
           {toasts.map(t => (
@@ -176,3 +235,4 @@ export default function NotificationBell() {
     </div>
   );
 }
+

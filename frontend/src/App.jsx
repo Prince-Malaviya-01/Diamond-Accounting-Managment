@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import IndexPage from "./pages/IndexPage";
+import { requestNotificationPermissionAndRegister } from "./firebase";
 
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const UserDashboardPage = lazy(() => import("./pages/UserDashboardPage"));
@@ -23,7 +24,13 @@ export default function App() {
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
     document.documentElement.setAttribute("data-theme", savedTheme);
+
+    const token = localStorage.getItem("token");
+    if (token) {
+      requestNotificationPermissionAndRegister();
+    }
   }, []);
+
 
   return (
     <Suspense fallback={<div style={{ padding: "1rem" }}>Loading...</div>}>

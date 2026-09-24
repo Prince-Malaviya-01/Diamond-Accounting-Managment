@@ -5,3 +5,6 @@ from app.models.job import Job
 from app.models.user import User
 from app.models.price_config import PriceConfig
 from app.models.account_profit import AccountProfit
+from app.models.notification import Notification
+from app.models.device_token import DeviceToken
+

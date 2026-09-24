@@ -3,6 +3,8 @@ import { Diamond, Eye, EyeOff, LogIn, ArrowLeft, KeyRound, Mail, ShieldAlert, Ch
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import ThemeToggle from "../components/ThemeToggle";
+import { requestNotificationPermissionAndRegister } from "../firebase";
+
 
 export default function LoginPage({ mode = "client", isModal = false, onClose }) {
   const navigate = useNavigate();
@@ -110,7 +112,9 @@ export default function LoginPage({ mode = "client", isModal = false, onClose })
       const { data } = await api.post("/auth/login", payload);
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("is_admin", String(data.is_admin));
+      requestNotificationPermissionAndRegister();
       navigate(data.is_admin ? "/admin" : "/dashboard");
+
     } catch (err) {
       setLoginError(err.response?.data?.detail || "Login failed. Please verify credentials.");
     } finally {

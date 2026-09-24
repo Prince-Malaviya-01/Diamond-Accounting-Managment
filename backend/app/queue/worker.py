@@ -36,8 +36,8 @@ def process_pending_notifications(db) -> None:
             latest_created_at = max(j.created_at for j in jobs)
             diff_seconds = (now - latest_created_at).total_seconds()
 
-            # If 2 minutes of silence passed
-            if diff_seconds >= 120:
+            # If 5 seconds of silence passed after upload
+            if diff_seconds >= 5:
                 # Atomically mark as notified in DB first to prevent duplicates
                 job_ids = [j.id for j in jobs]
                 updated_count = (
@@ -77,9 +77,17 @@ def process_pending_notifications(db) -> None:
                         )
                         db.add(notification)
                         db.commit()
+
+                        # Send Instant Firebase Push Notification to Admin Devices
+                        try:
+                            from app.services.fcm_service import notify_admin_new_uploads
+                            notify_admin_new_uploads(db, client.company_name, count, stone_ids_str)
+                        except Exception as e:
+                            print(f"[Worker ERROR] FCM admin push error: {e}")
+
                         print(f"[Worker] Sent upload notification to Admin for client {client.username} ({count} stones)")
 
-    # 2. ADMIN COMPLETIONS -> CLIENT NOTIFICATIONS (1-minute silence debounce)
+    # 2. ADMIN COMPLETIONS -> CLIENT NOTIFICATIONS (5-second silence debounce)
     unnotified_completions = (
         db.query(Job)
         .filter(Job.status == "Completed", Job.notified_client == False, Job.completed_at.isnot(None))
@@ -95,8 +103,9 @@ def process_pending_notifications(db) -> None:
             latest_completed_at = max(j.completed_at for j in jobs)
             diff_seconds = (now - latest_completed_at).total_seconds()
 
-            # If 1 minute of silence passed
-            if diff_seconds >= 60:
+            # If 5 seconds of silence passed
+            if diff_seconds >= 5:
+
                 # Atomically mark as notified in DB first to prevent duplicates
                 job_ids = [j.id for j in jobs]
                 updated_count = (
@@ -135,7 +144,16 @@ def process_pending_notifications(db) -> None:
                         )
                         db.add(notification)
                         db.commit()
+
+                        # Send Instant Firebase Push Notification to Client Devices
+                        try:
+                            from app.services.fcm_service import notify_client_stones_completed
+                            notify_client_stones_completed(db, client.id, client.company_name, count, stone_ids_str)
+                        except Exception as e:
+                            print(f"[Worker ERROR] FCM client push error: {e}")
+
                         print(f"[Worker] Sent completion notification to client {client.username} ({count} stones)")
+
 
 
 def run_worker() -> None:

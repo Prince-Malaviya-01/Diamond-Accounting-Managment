@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 import threading
 
 from app.database import engine
-from app.models import activity_log, download_token, invoice, job, user, notification
+from app.models import activity_log, download_token, invoice, job, user, notification, device_token
 from app.models.base import Base
 from app.models.user import User
 from app.routers import admin, analytics, auth, billing, jobs, users, notifications
