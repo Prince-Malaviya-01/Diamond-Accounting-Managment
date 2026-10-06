@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
     rate_per_carat: 0.0,
     email: ""
   });
-  const [registerError, setRegisterError] = useState("");
+  const [registerFieldErrors, setRegisterFieldErrors] = useState({});
   const [registerSuccess, setRegisterSuccess] = useState("");
   const [registerLoading, setRegisterLoading] = useState(false);
   const [showRegPwd, setShowRegPwd] = useState(false);
@@ -659,42 +659,40 @@ export default function AdminDashboardPage() {
     setConfirmModal({
       show: true,
       title: "Delete User Account",
-      message: `Are you sure you want to permanently delete user "${username}" and ALL their associated data, jobs, invoices, and folders? This cannot be undone.`,
+      message: `Are you sure you want to permanently delete user "${username}" and ALL their associated data, jobs, invoices, and files? This cannot be undone.`,
       confirmLabel: "Delete User",
       isDanger: true,
       onConfirm: async () => {
         try {
-          await api.post(`/admin/delete-user/${uid}`);
-          showMsg(`User ${username} deleted`);
+          const res = await api.post(`/admin/delete-user/${uid}`);
+          showMsg(res.data?.message || `User ${username} deleted successfully`);
           load();
-        } catch { showMsg("Deletion failed"); }
+        } catch (err) { 
+          const errDetail = err?.response?.data?.detail || "Deletion failed";
+          showMsg(errDetail); 
+        }
       }
     });
   };
 
   const handleRegisterClient = async (e) => {
     e.preventDefault();
-    setRegisterError("");
+    setRegisterFieldErrors({});
     setRegisterSuccess("");
     
-    const uname = registerForm.username.trim();
-    if (!uname) {
-      setRegisterError("Username is required");
-      return;
-    }
-    if (registerForm.password.length < 4) {
-      setRegisterError("Password must be at least 4 characters long");
-      return;
-    }
+    const company = (registerForm.company_name || "").trim();
+    const uname = (registerForm.username || "").trim();
+    const email = (registerForm.email || "").trim();
+    const pwd = registerForm.password || "";
 
     setRegisterLoading(true);
     try {
       await api.post("/auth/register", {
-        company_name: registerForm.company_name.trim(),
+        company_name: company,
         username: uname,
-        password: registerForm.password,
+        password: pwd,
         rate_per_carat: Number(registerForm.rate_per_carat) || 0.0,
-        email: registerForm.email.trim()
+        email: email
       });
       setRegisterSuccess("✓ Client account registered successfully!");
       setRegisterForm({
@@ -704,6 +702,7 @@ export default function AdminDashboardPage() {
         rate_per_carat: 0.0,
         email: ""
       });
+      setRegisterFieldErrors({});
       load(); // Reload users & dashboard stats
       setTimeout(() => {
         setShowAddClientModal(false);
@@ -711,11 +710,29 @@ export default function AdminDashboardPage() {
       }, 1500);
     } catch (err) {
       const detail = err.response?.data?.detail;
-      setRegisterError(typeof detail === "string" ? detail : "Failed to register client");
+      if (detail && typeof detail === "object" && detail.errors) {
+        setRegisterFieldErrors(detail.errors);
+      } else if (typeof detail === "string") {
+        const lower = detail.toLowerCase();
+        if (lower.includes("username")) {
+          setRegisterFieldErrors({ username: detail });
+        } else if (lower.includes("email") || lower.includes("mail")) {
+          setRegisterFieldErrors({ email: detail });
+        } else if (lower.includes("password") || lower.includes("character")) {
+          setRegisterFieldErrors({ password: detail });
+        } else if (lower.includes("company")) {
+          setRegisterFieldErrors({ company_name: detail });
+        } else {
+          setRegisterFieldErrors({ general: detail });
+        }
+      } else {
+        setRegisterFieldErrors({ general: "Failed to register client" });
+      }
     } finally {
       setRegisterLoading(false);
     }
   };
+
 
   useEffect(() => {
     if (activeTab === "billing") loadBillingData();
@@ -1112,7 +1129,16 @@ export default function AdminDashboardPage() {
     });
   };
 
-  const uniqueUsers = useMemo(() => [...new Set(jobs.map(j => j.user))].sort(), [jobs]);
+  const uniqueUsers = useMemo(() => {
+    return users
+      .filter(u => !u.is_admin)
+      .map(u => ({
+        label: `${u.company_name} (${u.username})`,
+        value: String(u.id),
+        company: u.company_name,
+        username: u.username
+      }));
+  }, [users]);
   const nonAdminUsers = useMemo(() => users.filter(u => !u.is_admin), [users]);
 
   const isJobFullyCompleted = useCallback((j) => {
@@ -1138,8 +1164,8 @@ export default function AdminDashboardPage() {
         });
       }
     } else {
-      // If specific user selected, show all data for that user
-      result = result.filter(j => j.user === userFilter);
+      // If specific user selected, show data strictly for that user
+      result = result.filter(j => String(j.user_id) === String(userFilter) || j.user === userFilter || j.username === userFilter);
     }
 
     // 2. Status Filter
@@ -1147,12 +1173,13 @@ export default function AdminDashboardPage() {
       result = result.filter(j => j.status === statusFilter);
     }
 
-    // 3. Search Filter (user, stone id, price, status, upload time)
+    // 3. Search Filter (user, username, stone id, price, status, upload time)
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(j => {
         const stoneIdMatch = j.stone_id?.toLowerCase().includes(term);
         const userMatch = j.user?.toLowerCase().includes(term);
+        const usernameMatch = j.username?.toLowerCase().includes(term);
         const fileMatch = j.upload_filename?.toLowerCase().includes(term);
         const statusMatch = j.status?.toLowerCase().includes(term);
         
@@ -1165,7 +1192,7 @@ export default function AdminDashboardPage() {
         const uploadTimeStr = j.upload_time ? new Date(j.upload_time).toLocaleString('en-GB') : "";
         const timeMatch = uploadTimeStr.toLowerCase().includes(term);
 
-        return stoneIdMatch || userMatch || fileMatch || statusMatch || priceMatch || timeMatch;
+        return stoneIdMatch || userMatch || usernameMatch || fileMatch || statusMatch || priceMatch || timeMatch;
       });
     }
 
@@ -1178,7 +1205,7 @@ export default function AdminDashboardPage() {
 
     // 1. User Filter
     if (completedUserFilter !== "all") {
-      result = result.filter(j => j.user === completedUserFilter);
+      result = result.filter(j => String(j.user_id) === String(completedUserFilter) || j.user === completedUserFilter || j.username === completedUserFilter);
     }
 
     // 2. Date Filter
@@ -1375,9 +1402,10 @@ export default function AdminDashboardPage() {
             company_name: "",
             username: "",
             password: "",
-            rate_per_carat: 0.0
+            rate_per_carat: 0.0,
+            email: ""
           });
-          setRegisterError("");
+          setRegisterFieldErrors({});
           setRegisterSuccess("");
           setShowAddClientModal(true);
         }} className="btn-secondary" style={{ marginRight: "10px", display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1867,12 +1895,12 @@ export default function AdminDashboardPage() {
                       <th>Role</th>
                       <th>Stones</th>
                       <th>Joined</th>
-                      <th>Account</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {users.map(u => {
-                      const userJobs = jobs.filter(j => j.user === u.company_name);
+                      const userJobs = jobs.filter(j => j.user_id ? j.user_id === u.id : (j.username ? j.username === u.username : j.user === u.company_name));
                       const userCompleted = userJobs.filter(j => j.status === "Completed").length;
                       return (
                         <tr 
@@ -1914,8 +1942,22 @@ export default function AdminDashboardPage() {
                           <td style={{ fontSize: ".82rem" }}>{new Date(u.created_at).toLocaleDateString('en-GB')}</td>
                           <td>
                             {!u.is_admin && (
-                              <button className="btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setActiveTab("billing"); loadUserAccount(u.id); }}>
-                                <Eye size={13} /> View
+                              <button 
+                                className="btn-ghost btn-sm" 
+                                style={{ 
+                                  color: "var(--failed, #ef4444)", 
+                                  borderColor: "rgba(239, 68, 68, 0.3)",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px"
+                                }} 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  handleDeleteUser(u.id, u.username); 
+                                }}
+                                title="Delete Client"
+                              >
+                                <Trash2 size={13} /> Delete
                               </button>
                             )}
                           </td>
@@ -3507,6 +3549,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ── Add Client Modal ── */}
+      {/* ── Add Client Modal ── */}
       {showAddClientModal && (
         <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 460 }}>
@@ -3515,47 +3558,39 @@ export default function AdminDashboardPage() {
                 <UserPlus size={20} className="text-primary" />
                 <h3>Add New Client</h3>
               </div>
-              <button onClick={() => setShowAddClientModal(false)} className="btn-icon">
+              <button 
+                onClick={() => {
+                  setShowAddClientModal(false);
+                  setRegisterFieldErrors({});
+                  setRegisterSuccess("");
+                }} 
+                className="btn-icon"
+              >
                 <XCircle size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleRegisterClient}>
+            <form onSubmit={handleRegisterClient} noValidate>
               <div className="modal-body">
                 <p style={{ marginBottom: 20, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
                   Create a secure, dedicated client portal account. The client will be able to log in to view their processing statement, real-time jobs, and invoices.
                 </p>
 
-                {registerError && (
-                  <div style={{
-                    padding: "10px 14px",
-                    borderRadius: "8px",
-                    background: "var(--failed-bg)",
-                    color: "var(--failed)",
-                    fontSize: "0.85rem",
-                    marginBottom: "16px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px"
-                  }}>
-                    <AlertCircle size={16} />
-                    <span>{registerError}</span>
-                  </div>
-                )}
-
                 {registerSuccess && (
                   <div style={{
                     padding: "10px 14px",
                     borderRadius: "8px",
-                    background: "var(--completed-bg)",
-                    color: "var(--completed)",
+                    background: "rgba(16, 185, 129, 0.12)",
+                    border: "1px solid rgba(16, 185, 129, 0.35)",
+                    color: "#10b981",
                     fontSize: "0.85rem",
+                    fontWeight: 600,
                     marginBottom: "16px",
                     display: "flex",
                     alignItems: "center",
                     gap: "8px"
                   }}>
-                    <CheckCircle2 size={16} />
+                    <CheckCircle2 size={16} style={{ color: "#10b981", flexShrink: 0 }} />
                     <span>{registerSuccess}</span>
                   </div>
                 )}
@@ -3564,36 +3599,72 @@ export default function AdminDashboardPage() {
                   <label>Company Name</label>
                   <input
                     type="text"
-                    required
                     placeholder="e.g. Surat Gems & Co."
                     value={registerForm.company_name}
-                    onChange={(e) => setRegisterForm({ ...registerForm, company_name: e.target.value })}
+                    className={registerFieldErrors.company_name ? "has-error" : ""}
+                    data-error={registerFieldErrors.company_name ? "true" : "false"}
+                    onChange={(e) => {
+                      setRegisterForm({ ...registerForm, company_name: e.target.value });
+                      if (registerFieldErrors.company_name) {
+                        setRegisterFieldErrors(prev => ({ ...prev, company_name: undefined }));
+                      }
+                    }}
                     autoComplete="off"
                   />
+                  {registerFieldErrors.company_name && (
+                    <div className="field-error-text">
+                      <AlertCircle size={14} />
+                      <span>{registerFieldErrors.company_name}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
                   <label>Username</label>
                   <input
                     type="text"
-                    required
                     placeholder="e.g. suratgems"
                     value={registerForm.username}
-                    onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
+                    className={registerFieldErrors.username ? "has-error" : ""}
+                    data-error={registerFieldErrors.username ? "true" : "false"}
+                    onChange={(e) => {
+                      setRegisterForm({ ...registerForm, username: e.target.value });
+                      if (registerFieldErrors.username) {
+                        setRegisterFieldErrors(prev => ({ ...prev, username: undefined }));
+                      }
+                    }}
                     autoComplete="off"
                   />
+                  {registerFieldErrors.username && (
+                    <div className="field-error-text">
+                      <AlertCircle size={14} />
+                      <span>{registerFieldErrors.username}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
                   <label>Email ID</label>
                   <input
                     type="email"
-                    required
                     placeholder="e.g. client@example.com"
                     value={registerForm.email}
-                    onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                    className={registerFieldErrors.email ? "has-error" : ""}
+                    data-error={registerFieldErrors.email ? "true" : "false"}
+                    onChange={(e) => {
+                      setRegisterForm({ ...registerForm, email: e.target.value });
+                      if (registerFieldErrors.email) {
+                        setRegisterFieldErrors(prev => ({ ...prev, email: undefined }));
+                      }
+                    }}
                     autoComplete="off"
                   />
+                  {registerFieldErrors.email && (
+                    <div className="field-error-text">
+                      <AlertCircle size={14} />
+                      <span>{registerFieldErrors.email}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -3601,10 +3672,16 @@ export default function AdminDashboardPage() {
                   <div style={{ position: "relative", width: "100%" }}>
                     <input
                       type={showRegPwd ? "text" : "password"}
-                      required
                       placeholder="Enter safe password"
                       value={registerForm.password}
-                      onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                      className={registerFieldErrors.password ? "has-error" : ""}
+                      data-error={registerFieldErrors.password ? "true" : "false"}
+                      onChange={(e) => {
+                        setRegisterForm({ ...registerForm, password: e.target.value });
+                        if (registerFieldErrors.password) {
+                          setRegisterFieldErrors(prev => ({ ...prev, password: undefined }));
+                        }
+                      }}
                       autoComplete="new-password"
                       style={{ paddingRight: 42, marginBottom: 0 }}
                     />
@@ -3622,11 +3699,34 @@ export default function AdminDashboardPage() {
                       {showRegPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  {registerFieldErrors.password && (
+                    <div className="field-error-text">
+                      <AlertCircle size={14} />
+                      <span>{registerFieldErrors.password}</span>
+                    </div>
+                  )}
                 </div>
+
+                {registerFieldErrors.general && (
+                  <div className="field-error-text">
+                    <AlertCircle size={14} />
+                    <span>{registerFieldErrors.general}</span>
+                  </div>
+                )}
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={() => setShowAddClientModal(false)} className="btn-outline">Cancel</button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowAddClientModal(false);
+                    setRegisterFieldErrors({});
+                    setRegisterSuccess("");
+                  }} 
+                  className="btn-outline"
+                >
+                  Cancel
+                </button>
                 <button 
                   type="submit" 
                   className="btn-primary" 
@@ -3640,6 +3740,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
+
 
 
       {/* ── Edit Completed Job Modal ── */}

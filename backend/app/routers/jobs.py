@@ -39,38 +39,18 @@ def _get_job_completed_path(job: Job) -> Path | None:
         if path.exists():
             return path
             
-    # 2. Search in ALL user folders within drive_sync (stone and done) for a match
-    from app.config import get_settings
-    settings = get_settings()
-    sync_root = settings.drive_sync_root
-    
+    # 2. Search ONLY in this specific user's internal storage
+    completed_dir = settings.storage_root / "completed" / str(job.user_id)
     filename_to_match = job.upload_filename or f"{job.stone_id}"
-    print(f"DEBUG: Starting global search for file matching: {filename_to_match}")
     
-    # Iterate through all subfolders in drive_sync (one for each user/company)
-    if sync_root.exists():
-        for user_folder in sync_root.iterdir():
-            if not user_folder.is_dir(): continue
-            print(f"DEBUG: Checking user folder: {user_folder.name}")
-            
-            # Check 'stone' and 'done' subfolders
-            for sub in ["stone", "done"]:
-                folder = user_folder / sub
-                if not folder.exists(): continue
-                print(f"DEBUG: Searching in: {folder}")
-                
-                # Try exact filename match
-                target = folder / filename_to_match
-                if target.exists():
-                    print(f"DEBUG: Found EXACT match: {target}")
-                    return target
-                
-                # Try Stone ID match (case-insensitive)
-                for f in folder.iterdir():
-                    if f.is_file() and (f.name.lower() == filename_to_match.lower() or 
-                                        f.name.lower().startswith(job.stone_id.lower())):
-                        print(f"DEBUG: Found PARTIAL/CASE match: {f}")
-                        return f
+    if completed_dir.exists():
+        target = completed_dir / filename_to_match
+        if target.exists():
+            return target
+        for f in completed_dir.iterdir():
+            if f.is_file() and (f.name.lower() == filename_to_match.lower() or 
+                                f.name.lower().startswith(job.stone_id.lower())):
+                return f
     return None
 
 

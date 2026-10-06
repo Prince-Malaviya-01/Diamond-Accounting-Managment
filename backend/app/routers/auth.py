@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -26,22 +27,51 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register")
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     print("!!! NEW REGISTRATION ATTEMPT !!!")
-    username = payload.username.strip()
+    company_name = (payload.company_name or "").strip()
+    username = (payload.username or "").strip()
+    email = (payload.email or "").strip().lower() if payload.email else ""
+    password = payload.password or ""
     
-    # Check for existing username
-    existing_user = db.query(User).filter(User.username == username).first()
+    errors = {}
     
-    if existing_user:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
+    if not company_name:
+        errors["company_name"] = "Company Name is required"
+        
+    if not username:
+        errors["username"] = "Username is required"
+    else:
+        existing_user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
+        if existing_user:
+            errors["username"] = "Username already exists"
+
+    if not email:
+        errors["email"] = "Email ID is required"
+    elif "@" not in email or "." not in email:
+        errors["email"] = "Please enter a valid email address"
+    else:
+        existing_email = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+        if existing_email:
+            errors["email"] = "Email ID already exists"
+
+    if not password:
+        errors["password"] = "Password is required"
+    elif len(password) < 4:
+        errors["password"] = "Password must be at least 4 characters long"
+        
+    if errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail={"errors": errors, "message": "Validation failed"}
+        )
 
     pending_user = User(
-        company_name=payload.company_name,
+        company_name=company_name,
         username=username,
-        password=hash_password(payload.password),
-        rate_per_carat=payload.rate_per_carat,
+        password=hash_password(password),
+        rate_per_carat=payload.rate_per_carat or 0.0,
         status="approved",
         is_admin=False,
-        email=payload.email.strip().lower() if payload.email else None
+        email=email
     )
     db.add(pending_user)
     db.commit()
@@ -50,7 +80,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     # Automatically create storage
     ensure_drive_sync_tree_for_user(pending_user.username)
 
-    log_activity(db, "user_register", f"User {pending_user.username} registered (auto-approved)", pending_user.id)
+    log_activity(db, "user_register", f"User {pending_user.username} ({company_name}) registered (auto-approved)", pending_user.id)
     return {"id": pending_user.id, "username": pending_user.username}
 
 

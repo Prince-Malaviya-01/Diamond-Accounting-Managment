@@ -23,6 +23,8 @@ from app.models.invoice import Invoice
 from app.models.price_config import PriceConfig
 from app.models.account_profit import AccountProfit
 from app.models.download_token import DownloadToken
+from app.models.notification import Notification
+from app.models.device_token import DeviceToken
 from app.schemas import DashboardStats, SetPriorityRequest, PriceConfigUpdate, UpdateWeightRequest, ApplyRetroactivePricingRequest, AccountProfitCreate, AccountProfitUpdate, BulkDownloadRequest
 from app.services.drive_sync_service import get_drive_sync_status
 from app.services.log_service import log_activity
@@ -45,7 +47,9 @@ def all_jobs(admin: User = Depends(get_current_admin), db: Session = Depends(get
     return [
         {
             "id": j.id,
+            "user_id": j.user_id,
             "user": users.get(j.user_id).company_name if users.get(j.user_id) else "Unknown",
+            "username": users.get(j.user_id).username if users.get(j.user_id) else "Unknown",
             "stone_id": j.stone_id,
             "weight": j.weight,
             "upload_time": j.created_at,
@@ -523,24 +527,50 @@ def delete_user(user_id: int, admin: User = Depends(get_current_admin), db: Sess
         raise HTTPException(status_code=403, detail="Cannot delete admin user")
     
     username = user.username
-    
-    # 1. Delete associated storage (uploads, processing, drive_sync etc)
+    company_name = user.company_name
+
+    # 1. Delete associated physical files from disk for this user's jobs
+    user_jobs = db.query(Job).filter(Job.user_id == user.id).all()
+    for job in user_jobs:
+        for p in [job.upload_path, job.processing_path, job.completed_path]:
+            if p:
+                try:
+                    fpath = Path(p)
+                    if fpath.is_file():
+                        fpath.unlink(missing_ok=True)
+                except Exception as e:
+                    print(f"Warning: Failed to delete job file {p}: {e}")
+
+    # Delete invoice files
+    user_invoices = db.query(Invoice).filter(Invoice.user_id == user.id).all()
+    for inv in user_invoices:
+        if inv.file_path:
+            try:
+                ipath = Path(inv.file_path)
+                if ipath.is_file():
+                    ipath.unlink(missing_ok=True)
+            except Exception as e:
+                print(f"Warning: Failed to delete invoice file {inv.file_path}: {e}")
+
+    # Delete user storage folders (uploads, processing, completed, invoices, drive_sync)
     delete_user_storage(user.id, user.username)
     
-    # 2. Delete related database entries (Using synchronize_session=False to avoid FK issues with pending session state)
+    # 2. Delete related database entries (DownloadToken, Notification, DeviceToken, ActivityLog, Job, Invoice, PriceConfig, AccountProfit)
+    db.query(DownloadToken).filter(DownloadToken.user_id == user.id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.user_id == user.id).delete(synchronize_session=False)
+    db.query(DeviceToken).filter(DeviceToken.user_id == user.id).delete(synchronize_session=False)
     db.query(ActivityLog).filter(ActivityLog.user_id == user.id).delete(synchronize_session=False)
     db.query(Job).filter(Job.user_id == user.id).delete(synchronize_session=False)
     db.query(Invoice).filter(Invoice.user_id == user.id).delete(synchronize_session=False)
     db.query(PriceConfig).filter(PriceConfig.user_id == user.id).delete(synchronize_session=False)
-    db.query(DownloadToken).filter(DownloadToken.user_id == user.id).delete(synchronize_session=False)
     db.query(AccountProfit).filter(AccountProfit.user_id == user.id).delete(synchronize_session=False)
     
     # 3. Delete user from database
     db.delete(user)
     db.commit()
     
-    log_activity(db, "admin_delete_user", f"Admin {admin.username} deleted user {username}", admin.id)
-    return {"message": f"User {username} and all associated data deleted"}
+    log_activity(db, "admin_delete_user", f"Admin {admin.username} deleted user {username} ({company_name})", admin.id)
+    return {"message": f"User {username} and all associated data deleted successfully"}
 
 
 @router.get("/price-config")
