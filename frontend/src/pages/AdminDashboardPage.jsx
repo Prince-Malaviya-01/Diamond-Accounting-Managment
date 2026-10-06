@@ -1596,7 +1596,7 @@ export default function AdminDashboardPage() {
               <CustomSelect
                 options={[
                   { label: "All Users", value: "all" },
-                  ...uniqueUsers.map(u => ({ label: u, value: u }))
+                  ...uniqueUsers
                 ]}
                 value={userFilter}
                 onChange={setUserFilter}
@@ -3013,7 +3013,7 @@ export default function AdminDashboardPage() {
               <CustomSelect
                 options={[
                   { label: "All Users", value: "all" },
-                  ...uniqueUsers.map(u => ({ label: u, value: u }))
+                  ...uniqueUsers
                 ]}
                 value={completedUserFilter}
                 onChange={setCompletedUserFilter}
